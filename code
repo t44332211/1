@@ -1,0 +1,30 @@
+public void Main()
+{
+    string filePath = Dts.Variables["v_FilePath"].Value.ToString();
+    string connectionString = Dts.Variables["p_connectionString"].Value.ToString();
+
+    try
+    {
+        
+        string fileContent = File.ReadAllText(filePath);
+        
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string query = "INSERT INTO dbo.[V_tmpJson] (Json) VALUES (@json)";
+            
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@json", fileContent);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        Dts.TaskResult = (int)ScriptResults.Success;
+    }
+    catch (Exception ex)
+    {
+        MessageBox.Show("Error: " + ex.Message);
+        Dts.TaskResult = (int)ScriptResults.Failure;
+    }
+}
