@@ -1,0 +1,4 @@
+#--from file to Clipboard--
+certutil -encode "C:\Project\EXPORT\PostgreSQL_arch.zip" temp.b64
+Get-Content temp.b64 -Raw | Set-Clipboard
+Remove-Item temp.b64
