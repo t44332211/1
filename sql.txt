@@ -1,0 +1,17 @@
+CREATE TABLE [dbo].[t_ImportJson](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[DateTime] [datetime] NULL,
+	[Json] [nvarchar](max) NULL,
+	[Status] [int] NULL
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+
+ALTER TABLE [dbo].[t_ImportJson] ADD  CONSTRAINT [DF_t_ImportJson_DateTime]  DEFAULT (getdate()) FOR [DateTime]
+GO
+
+
+
+CREATE VIEW [dbo].[V_tmpJson]
+AS
+SELECT        Json
+FROM            dbo.[t_ImportJson]
