@@ -3461,3 +3461,6 @@ VVQFAAFZdvtoUEsBAhQDFAAIAAgA7GAHW/oIpoutAQAA3AMAAC8AGAAAAAAAAAAA
 ALaB9HkCAFNlYXJjaF9EYXRldGltZV9maWxlcy9TZWFyY2hfRGF0ZXRpbWVfZmls
 ZXMuc2xudXgLAAEEAAAAAAQAAAAAVVQFAAHNbJRoUEsFBgAAAAAZABkA8AwAAB58
 AgAAAA==
+
+$base64 = Get-Content "C:\Test\base64.txt" -Raw
+[IO.File]::WriteAllBytes("C:\Test\normal.zip", [Convert]::FromBase64String($base64))
