@@ -1,0 +1,599 @@
+create or replace PROCEDURE usp_delperm_data (
+  p_db_name in varchar,
+  p_dttimestamps in varchar,
+  p_dtprevtimestamps in varchar,
+  p_personrole  in varchar,
+  p_whitelist in number,
+  p_recordset out SYS_REFCURSOR
+)
+as
+begin
+ open p_recordset for
+with all_enabler as ( 
+select db.db_name, 
+        trim(regexp_substr(db.data_enabler,'[^,]+',1,level)) as user_name
+from rezudb_oracle_databases db
+where 1 = 1
+  and db.db_name=trim(p_db_name)
+  and (to_char(db.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dttimestamps) 
+        or
+      to_char(db.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dtprevtimestamps) 
+      )
+connect by regexp_substr(db.data_enabler,'[^,]+',1,level) is not null
+  and prior db.db_name=db.db_name
+  and prior db.data_enabler=db.data_enabler
+  and prior sys_guid() is not null
+  )
+
+, all_owner as ( 
+select db.db_name, 
+        trim(regexp_substr(db.data_owner,'[^,]+',1,level)) as user_name
+from rezudb_oracle_databases db
+where 1 = 1
+  and db.db_name=trim(p_db_name)
+  and (to_char(db.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dttimestamps) 
+        or
+       to_char(db.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dtprevtimestamps) 
+      )
+connect by regexp_substr(db.data_owner,'[^,]+',1,level) is not null
+  and prior db.db_name=db.db_name
+  and prior db.data_owner=db.data_owner
+  and prior sys_guid() is not null
+)
+, all_steward as ( 
+select db.db_name, 
+        trim(regexp_substr(db.data_steward,'[^,]+',1,level)) as user_name
+from rezudb_oracle_databases db
+where 1 = 1
+  and db.db_name=trim(p_db_name)
+  and (to_char(db.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dttimestamps) 
+        or
+       to_char(db.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dtprevtimestamps) 
+      )
+connect by regexp_substr(db.data_steward,'[^,]+',1,level) is not null
+  and prior db.db_name=db.db_name
+  and prior db.data_steward=db.data_steward
+  and prior sys_guid() is not null
+)
+,all_dba as ( 
+select db.db_name, 
+        trim(regexp_substr(db.dba,'[^,]+',1,level)) as user_name
+from rezudb_oracle_databases db
+where 1 = 1
+  and db.db_name=trim(p_db_name)
+  and (to_char(db.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dttimestamps) 
+        or
+      to_char(db.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dtprevtimestamps) 
+      )
+connect by regexp_substr(db.dba,'[^,]+',1,level) is not null
+  and prior db.db_name=db.db_name
+  and prior db.dba=db.dba
+  and prior sys_guid() is not null
+),
+users_roles as ( 
+select  u.dbid, 
+        u.pdb_name, 
+        u.collection_timestamp, 
+        u.username as username, 
+        rp.granted_role as rolename,
+        u.user_id as userid, 
+        'U' as usertype,
+        u.account_status as accountstatus
+from HUK_DBA_USERS u
+left join HUK_DBA_ROLE_PRIVS rp
+    on u.dbid=rp.dbid
+      and u.collection_timestamp=rp.collection_timestamp
+      and rp.grantee=u.username
+where u.pdb_name=trim(p_db_name)
+  and (to_char(u.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dttimestamps) 
+       or
+       to_char(u.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dtprevtimestamps) 
+      )
+) 
+,privs as ( 
+select sys_p.dbid, sys_p.pdb_name,
+       sys_p.collection_timestamp,
+       sys_p.grantee,
+       sys_p.privilege as privilege_name,
+       sys_p.admin_option,
+       sys_p.common,
+       sys_p.inherited,
+       '*' as schemaname,
+       '*' as table_name,
+       '*' as table_type,
+       '*' as column_name
+from HUK_DBA_SYS_PRIVS sys_p
+where sys_p.pdb_name=trim(p_db_name)
+  and (to_char(sys_p.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dttimestamps) 
+       or
+       to_char(sys_p.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dtprevtimestamps) 
+      )
+union all
+select  tab_p.dbid, tab_p.pdb_name,
+        tab_p.collection_timestamp,
+        tab_p.grantee,
+        tab_p.privilege as privilege_name,
+        tab_p.owner as admin_option,
+        tab_p.common,
+        tab_p.inherited,
+        tab_p.owner schemaname,
+        tab_p.table_name,
+        tab_p.type as table_type,
+        col_p.column_name
+from HUK_DBA_TAB_PRIVS tab_p
+left join HUK_DBA_COL_PRIVS col_p
+    on tab_p.dbid=col_p.dbid
+        and tab_p.collection_timestamp=col_p.collection_timestamp
+        and tab_p.table_name=col_p.table_name
+        and tab_p.grantee=col_p.grantee
+where tab_p.pdb_name=trim(p_db_name)
+  and (to_char(tab_p.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dttimestamps) 
+       or
+       to_char(tab_p.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dtprevtimestamps) 
+      )
+) 
+,curr_global as (
+select distinct 'Global permission' as Global,
+                 ur.username, 
+                 ur.rolename,
+                 nvl(p.schemaname,'*') schemaname,
+                 decode(ur.rolename, null, 'U', 'R') usertype,
+                 'GRANT' as permission_state, 
+                  'CREATE SESSION' privilege_name,
+                  nvl(p.table_type, '*') table_type,
+                  nvl(p.table_name, '*') table_name,
+                  nvl(p.column_name, '*') column_name
+from rezudb_oracle_databases db
+left join users_roles ur
+    on db.db_name=ur.pdb_name
+left join privs p
+    on p.dbid=ur.dbid
+       and p.grantee = ur.username  -- check by user
+       and p.collection_timestamp=ur.collection_timestamp
+left join all_enabler en 
+    on en.db_name=db.db_name
+       and en.user_name = ur.username
+left join all_owner own
+    on own.db_name=db.db_name
+       and own.user_name = ur.username
+left join all_steward ste
+    on ste.db_name=db.db_name
+       and ste.user_name = ur.username
+left join all_dba dba
+    on dba.db_name=db.db_name
+       and dba.user_name = ur.username
+where ur.pdb_name=trim(p_db_name)
+  and to_char(ur.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dttimestamps) 
+  and (p.privilege_name = 'CREATE SESSION'  or  p.privilege_name like '%CONNECT%'  or  ur.rolename like '%CONNECT%') 
+  and (nvl(p_whitelist,0)=0
+            OR(not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.username and attribute='USER')
+            and not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.rolename and attribute='ROLE'))
+      )    
+
+  union 
+select distinct 'Global permission' as Global,
+                ur.username, 
+                ur.rolename,
+                nvl(sys_p.schemaname,'*') schemaname,
+                decode(ur.rolename, null, 'U', 'R') usertype,
+                'GRANT' as permission_state, 
+                'CREATE SESSION' privilege_name,
+                nvl(sys_p.table_type,'*') table_type, 
+                nvl(sys_p.table_name,'*') table_name, 
+                nvl(sys_p.column_name,'*') column_name
+from rezudb_oracle_databases db
+left join users_roles ur
+    on db.db_name=ur.pdb_name
+left join privs sys_p
+    on sys_p.dbid=ur.dbid
+       and ur.collection_timestamp = sys_p.collection_timestamp
+       and ur.rolename = sys_p.grantee  --check by role
+left join all_enabler en 
+    on en.db_name=db.db_name
+       and en.user_name = ur.username
+left join all_owner own
+    on own.db_name=db.db_name
+       and own.user_name = ur.username
+left join all_steward ste
+    on ste.db_name=db.db_name
+       and ste.user_name = ur.username
+left join all_dba dba
+    on dba.db_name=db.db_name
+       and dba.user_name = ur.username
+where ur.pdb_name=trim(p_db_name)
+  and to_char(ur.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dttimestamps) 
+  and (sys_p.privilege_name = 'CREATE SESSION'  or sys_p.privilege_name like '%CONNECT%'  or ur.rolename like '%CONNECT%') 
+  and (nvl(p_whitelist,0)=0
+            OR(not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.username and attribute='USER')
+            and not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.rolename and attribute='ROLE'))
+      )       
+)
+,    prev_global as (
+ select distinct 'Global permission' as Global,
+                 ur.username, 
+                 ur.rolename,
+                 nvl(p.schemaname,'*') schemaname,
+                 decode(ur.rolename, null, 'U', 'R') usertype,
+                 'GRANT' as permission_state, 
+                  'CREATE SESSION' privilege_name,
+                  nvl(p.table_type, '*') table_type,
+                  nvl(p.table_name, '*') table_name,
+                  nvl(p.column_name, '*') column_name
+from rezudb_oracle_databases db
+left join users_roles ur
+    on db.db_name=ur.pdb_name
+left join privs p
+    on p.dbid=ur.dbid
+       and p.grantee = ur.username  -- check by user
+       and p.collection_timestamp=ur.collection_timestamp
+left join all_enabler en 
+    on en.db_name=db.db_name
+       and en.user_name = ur.username
+left join all_owner own
+    on own.db_name=db.db_name
+       and own.user_name = ur.username
+left join all_steward ste
+    on ste.db_name=db.db_name
+       and ste.user_name = ur.username
+left join all_dba dba
+    on dba.db_name=db.db_name
+where ur.pdb_name=trim(p_db_name)
+  and to_char(ur.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dtprevtimestamps) 
+  and (p.privilege_name = 'CREATE SESSION'  or  p.privilege_name like '%CONNECT%'  or  ur.rolename like '%CONNECT%') 
+  and (nvl(p_whitelist,0)=0
+            OR(not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.username and attribute='USER')
+            and not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.rolename and attribute='ROLE'))
+      )    
+
+  union 
+select distinct 'Global permission' as Global,
+                ur.username, 
+                ur.rolename,
+                nvl(sys_p.schemaname,'*') schemaname,
+                decode(ur.rolename, null, 'U', 'R') usertype,
+                'GRANT' as permission_state, 
+                'CREATE SESSION' privilege_name,
+                nvl(sys_p.table_type,'*') table_type, 
+                nvl(sys_p.table_name,'*') table_name, 
+                nvl(sys_p.column_name,'*') column_name
+from rezudb_oracle_databases db
+left join users_roles ur
+    on db.db_name=ur.pdb_name
+left join privs sys_p
+    on sys_p.dbid=ur.dbid
+       and sys_p.grantee=ur.rolename  --check by role
+       and sys_p.collection_timestamp= ur.collection_timestamp
+left join all_enabler en 
+    on en.db_name=db.db_name
+       and en.user_name = ur.username
+left join all_owner own
+    on own.db_name=db.db_name
+       and own.user_name = ur.username
+left join all_steward ste
+    on ste.db_name=db.db_name
+       and ste.user_name = ur.username
+left join all_dba dba
+    on dba.db_name=db.db_name
+       and dba.user_name = ur.username
+where ur.pdb_name=trim(p_db_name)
+  and to_char(ur.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dtprevtimestamps) 
+  and (sys_p.privilege_name = 'CREATE SESSION'  or sys_p.privilege_name like '%CONNECT%'  or ur.rolename like '%CONNECT%') 
+  and (nvl(p_whitelist,0)=0
+            OR(not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.username and attribute='USER')
+            and not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.rolename and attribute='ROLE'))
+      ))
+,    curr_object as (
+ select distinct 'Object permission' as Global,
+                 ur.username, 
+                 null rolename,
+                 --nvl(p.schemaname,ur.username) schemaname,
+                 nvl(p.schemaname,decode(ur.username,dba.user_name, '*', ur.username)) schemaname,
+                 'U' usertype,
+                 'GRANT' as permission_state, 
+                  nvl(p.privilege_name, 'SELECT') privilege_name,
+                  nvl(p.table_type, '*') table_type,
+                  nvl(p.table_name, '*') table_name,
+                  nvl(p.column_name, '*') column_name
+from rezudb_oracle_databases db
+left join users_roles ur
+    on db.db_name=ur.pdb_name
+left join privs p
+    on p.dbid=ur.dbid
+       and p.grantee = ur.username  -- check by user
+       and p.collection_timestamp=ur.collection_timestamp
+left join all_enabler en 
+    on en.db_name=db.db_name
+       and en.user_name = ur.username
+left join all_owner own
+    on own.db_name=db.db_name
+       and own.user_name = ur.username
+left join all_steward ste
+    on ste.db_name=db.db_name
+       and ste.user_name = ur.username
+left join all_dba dba
+    on dba.db_name=db.db_name
+       and dba.user_name = ur.username
+where ur.pdb_name=trim(p_db_name)
+  and to_char(ur.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dttimestamps) 
+  and ( p.privilege_name IS NULL OR p.privilege_name != 'CREATE SESSION' )
+  and (ur.rolename is null or ur.rolename !='HUK_CONNECT' or (ur.rolename='HUK_CONNECT') and (p.privilege_name is not null and p.privilege_name != 'CREATE SESSION'))
+  and (nvl(p_whitelist,0)=0
+       OR(not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.username and attribute='USER')
+          and not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.rolename and attribute='ROLE')))    
+union 
+select distinct 'Object permission' as Global,
+                ur.username, 
+                ur.rolename,
+                --nvl(sys_p.schemaname,ur.username) schemaname,
+                nvl(sys_p.schemaname,decode(ur.username,dba.user_name, '*', ur.username)) schemaname,
+                decode(ur.rolename, null, 'U', 'R') usertype,
+                'GRANT' as permission_state, 
+                nvl(sys_p.privilege_name, 'SELECT') privilege_name,
+                nvl(sys_p.table_type,'*') table_type, 
+                nvl(sys_p.table_name,'*') table_name, 
+                nvl(sys_p.column_name,'*') column_name 
+from rezudb_oracle_databases db
+left join  users_roles ur
+    on db.db_name=ur.pdb_name
+left join privs sys_p
+    on sys_p.dbid=ur.dbid
+       and sys_p.grantee=ur.rolename  --check by role
+       and sys_p.collection_timestamp = ur.collection_timestamp
+left join all_enabler en 
+    on en.db_name=db.db_name
+       and en.user_name = ur.username
+left join all_owner own
+    on own.db_name=db.db_name
+       and own.user_name = ur.username
+left join all_steward ste
+    on ste.db_name=db.db_name
+       and ste.user_name = ur.username
+left join all_dba dba
+    on dba.db_name=db.db_name
+       and dba.user_name = ur.username
+where ur.pdb_name=trim(p_db_name)
+  and to_char(ur.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dttimestamps)     
+  and ( sys_p.privilege_name IS NULL OR sys_p.privilege_name != 'CREATE SESSION' )
+  and (ur.rolename is null or ur.rolename !='HUK_CONNECT' or (ur.rolename='HUK_CONNECT') and (sys_p.privilege_name is not null and sys_p.privilege_name != 'CREATE SESSION'))
+  and (nvl(p_whitelist,0)=0
+       OR(not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.username and attribute='USER')
+          and not exists (select 1 from HUK_REZUDB_WHITELIST where value=ur.rolename and attribute='ROLE')))
+union 
+select  distinct 'Object permission' as Global,
+                ur.username, 
+                ur.rolename,
+                --nvl(tab_p.owner,ur.username) schemaname,
+                nvl(tab_p.owner,decode(ur.username,dba.user_name, '*', ur.username)) schemaname,
+                decode(ur.rolename, null, 'U', 'R') usertype,
+                'GRANT' as permission_state, 
+                nvl(tab_p.privilege, 'SELECT') privilege_name,
+                nvl(tab_p.type,'*') table_type, 
+                nvl(tab_p.table_name,'*') table_name, 
+                nvl(col_p.column_name,'*') column_name
+from rezudb_oracle_databases db
+left join  users_roles ur
+    on db.db_name=ur.pdb_name
+left join HUK_DBA_TAB_PRIVS tab_p
+    on tab_p.dbid=ur.dbid
+       and tab_p.collection_timestamp=ur.collection_timestamp
+       and tab_p.grantee=ur.rolename
+left join HUK_DBA_COL_PRIVS col_p
+    on tab_p.dbid=col_p.dbid
+        and tab_p.collection_timestamp=col_p.collection_timestamp
+        and tab_p.table_name=col_p.table_name
+        and tab_p.grantee=col_p.grantee
+left join all_enabler en 
+    on en.db_name=db.db_name
+       and en.user_name = ur.username
+left join all_owner own
+    on own.db_name=db.db_name
+       and own.user_name = ur.username
+left join all_steward ste
+    on ste.db_name=db.db_name
+       and ste.user_name = ur.username
+left join all_dba dba
+    on dba.db_name=db.db_name
+       and dba.user_name = ur.username
+where ur.pdb_name=trim(p_db_name)
+  and to_char(ur.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dttimestamps)     
+  and ( tab_p.privilege IS NULL OR tab_p.privilege != 'CREATE SESSION' )
+  and (ur.rolename is null or ur.rolename !='HUK_CONNECT' or (ur.rolename='HUK_CONNECT') and (tab_p.privilege is not null and tab_p.privilege != 'CREATE SESSION'))
+  and (nvl(p_whitelist,0)=0
+       OR(not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.username and attribute='USER')
+          and not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.rolename and attribute='ROLE')))
+)
+    --select * from curr_global
+ ,   prev_object as (
+ select distinct 'Object permission' as Global,
+                 ur.username, 
+                 null rolename,
+                 --nvl(p.schemaname,ur.username) schemaname,
+                 nvl(p.schemaname,decode(ur.username,dba.user_name, '*', ur.username)) schemaname,
+                 'U' usertype,
+                 'GRANT' as permission_state, 
+                  nvl(p.privilege_name, 'SELECT') privilege_name,
+                  nvl(p.table_type, '*') table_type,
+                  nvl(p.table_name, '*') table_name,
+                  nvl(p.column_name, '*') column_name
+from rezudb_oracle_databases db
+left join users_roles ur
+    on db.db_name=ur.pdb_name
+left join privs p
+    on p.dbid=ur.dbid
+       and p.grantee = ur.username  -- check by user
+       and p.collection_timestamp=ur.collection_timestamp
+left join all_enabler en 
+    on en.db_name=db.db_name
+       and en.user_name = ur.username
+left join all_owner own
+    on own.db_name=db.db_name
+       and own.user_name = ur.username
+left join all_steward ste
+    on ste.db_name=db.db_name
+       and ste.user_name = ur.username
+left join all_dba dba
+    on dba.db_name=db.db_name
+       and dba.user_name = ur.username
+where ur.pdb_name=trim(p_db_name)
+  and to_char(ur.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dtprevtimestamps) 
+  and ( p.privilege_name IS NULL OR p.privilege_name != 'CREATE SESSION' )
+  and (ur.rolename is null or ur.rolename !='HUK_CONNECT' or (ur.rolename='HUK_CONNECT') and (p.privilege_name is not null and p.privilege_name != 'CREATE SESSION'))
+  and (nvl(p_whitelist,0)=0
+       OR(not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.username and attribute='USER')
+          and not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.rolename and attribute='ROLE')))    
+union 
+select distinct 'Object permission' as Global,
+                ur.username, 
+                ur.rolename,
+                --nvl(sys_p.schemaname,ur.username) schemaname,
+                 nvl(sys_p.schemaname,decode(ur.username,dba.user_name, '*', ur.username)) schemaname,
+                decode(ur.rolename, null, 'U', 'R') usertype,
+                'GRANT' as permission_state, 
+                nvl(sys_p.privilege_name, 'SELECT') privilege_name,
+                nvl(sys_p.table_type,'*') table_type, 
+                nvl(sys_p.table_name,'*') table_name, 
+                nvl(sys_p.column_name,'*') column_name 
+from rezudb_oracle_databases db
+left join  users_roles ur
+    on db.db_name=ur.pdb_name
+left join privs sys_p
+    on sys_p.dbid=ur.dbid
+       and sys_p.grantee=ur.rolename  --check by role
+       and sys_p.collection_timestamp = ur.collection_timestamp
+left join all_enabler en 
+    on en.db_name=db.db_name
+       and en.user_name = ur.username
+left join all_owner own
+    on own.db_name=db.db_name
+       and own.user_name = ur.username
+left join all_steward ste
+    on ste.db_name=db.db_name
+       and ste.user_name = ur.username
+left join all_dba dba
+    on dba.db_name=db.db_name
+       and dba.user_name = ur.username
+where ur.pdb_name=trim(p_db_name)
+  and to_char(ur.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dtprevtimestamps)     
+  and ( sys_p.privilege_name IS NULL OR sys_p.privilege_name != 'CREATE SESSION' )
+  and (ur.rolename is null or ur.rolename !='HUK_CONNECT' or (ur.rolename='HUK_CONNECT') and (sys_p.privilege_name is not null and sys_p.privilege_name != 'CREATE SESSION'))
+  and (nvl(p_whitelist,0)=0
+       OR(not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.username and attribute='USER')
+          and not exists (select 1 from HUK_REZUDB_WHITELIST where value=ur.rolename and attribute='ROLE')))
+union 
+select  distinct 'Object permission' as Global,
+                ur.username, 
+                ur.rolename,
+                --nvl(tab_p.owner,ur.username) schemaname,
+                nvl(tab_p.owner,decode(ur.username,dba.user_name, '*', ur.username)) schemaname,
+                decode(ur.rolename, null, 'U', 'R') usertype,
+                'GRANT' as permission_state, 
+                nvl(tab_p.privilege, 'SELECT') privilege_name,
+                nvl(tab_p.type,'*') table_type, 
+                nvl(tab_p.table_name,'*') table_name, 
+                nvl(col_p.column_name,'*') column_name
+from rezudb_oracle_databases db
+left join  users_roles ur
+    on db.db_name=ur.pdb_name
+left join HUK_DBA_TAB_PRIVS tab_p
+    on tab_p.dbid=ur.dbid
+       and tab_p.collection_timestamp=ur.collection_timestamp
+       and tab_p.grantee=ur.rolename
+left join HUK_DBA_COL_PRIVS col_p
+    on tab_p.dbid=col_p.dbid
+        and tab_p.collection_timestamp=col_p.collection_timestamp
+        and tab_p.table_name=col_p.table_name
+        and tab_p.grantee=col_p.grantee
+left join all_enabler en 
+    on en.db_name=db.db_name
+       and en.user_name = ur.username
+left join all_owner own
+    on own.db_name=db.db_name
+       and own.user_name = ur.username
+left join all_steward ste
+    on ste.db_name=db.db_name
+       and ste.user_name = ur.username
+left join all_dba dba
+    on dba.db_name=db.db_name
+       and dba.user_name = ur.username
+where ur.pdb_name=trim(p_db_name)
+  and to_char(ur.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = trim(p_dtprevtimestamps)     
+  and ( tab_p.privilege IS NULL OR tab_p.privilege != 'CREATE SESSION' )
+  and (ur.rolename is null or ur.rolename !='HUK_CONNECT' or (ur.rolename='HUK_CONNECT') and (tab_p.privilege is not null and tab_p.privilege != 'CREATE SESSION'))
+  and (nvl(p_whitelist,0)=0
+       OR(not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.username and attribute='USER')
+          and not exists (select 1 from HUK_REZUDB_WHITELIST where value= ur.rolename and attribute='ROLE')))
+)
+    --select * from curr_global
+    SELECT DISTINCT --curr.grantee_principal_id,
+            'Global permission' Global, 
+            --nvl(curr.strFullInstanceName, prev.strFullInstanceName)	as strFullInstanceName, 
+            --nvl(curr.Datenbankname, prev.Datenbankname)				as Datenbankname,
+            nvl(curr.username, prev.username)			            as username, 
+            nvl(curr.rolename, prev.rolename)						as rolename,
+            coalesce(curr.schemaname, prev.schemaname,'*')			as schemaname,
+            nvl(curr.table_type, prev.table_type)				    as table_type,		
+            case nvl(curr.usertype, prev.usertype)	when 'U' then 'USER'
+                                                    when 'R' then 'DATABASE_ROLE'
+            else nvl(curr.usertype, prev.usertype) end              as usertype,
+            nvl(curr.permission_state, prev.permission_state)		as AccessType,
+            nvl(curr.privilege_name, prev.privilege_name)		    as Privilege,
+            --nvl(curr.ADGroupLink, prev.ADGroupLink)				as ADGroupLink,
+            coalesce(curr.table_name, prev.table_name,'*')		    as Objectname,
+            coalesce(curr.column_name, prev.column_name,'*')		as ColumnName,
+            --prev.strFullInstanceName, prev.Datenbankname, prev.[User], prev.[Object], prev.[Schema], prev.[Type], prev.[User Type], prev.[Access Type], prev.[Privilege],
+            case when curr.privilege_name is null and prev.privilege_name is not null then 'DEL'
+                 when prev.privilege_name is null and curr.privilege_name is not null then 'NEW'
+            else 'SAME' end sign_compare
+        FROM curr_global curr
+        FULL OUTER JOIN prev_global prev 
+            ON nvl(prev.username,'')=nvl(curr.username,'') and nvl(prev.rolename,'')=nvl(curr.rolename,'') 
+               and nvl(prev.schemaname,'')=nvl(curr.schemaname,'') and nvl(prev.table_type,'')=nvl(curr.table_type,'') 
+               AND nvl(prev.table_name,'')=nvl(curr.table_name,'')
+               AND nvl(prev.column_name,'')=nvl(curr.column_name,'')
+               AND nvl(prev.usertype,'')=nvl(curr.usertype,'') 
+               and nvl(prev.permission_state,'')=nvl(curr.permission_state,'') 
+               and nvl(prev.privilege_name,'')=nvl(curr.privilege_name,'')
+        WHERE curr.privilege_name is null --without DELETED permission
+                OR prev.privilege_name is null 
+        UNION ALL
+        SELECT DISTINCT --curr.grantee_principal_id,
+            'Global permission' Global, 
+            --nvl(curr.strFullInstanceName, prev.strFullInstanceName)	as strFullInstanceName, 
+            --nvl(curr.Datenbankname, prev.Datenbankname)				as Datenbankname,
+            nvl(curr.username, prev.username)			            as username, 
+            nvl(curr.rolename, prev.rolename)						as rolename,
+            coalesce(curr.schemaname, prev.schemaname,'*')			as schemaname,
+            nvl(curr.table_type, prev.table_type)				    as table_type,		
+            case nvl(curr.usertype, prev.usertype)	when 'U' then 'USER'
+                                                    when 'R' then 'DATABASE_ROLE'
+            else nvl(curr.usertype, prev.usertype) end              as usertype,
+            nvl(curr.permission_state, prev.permission_state)		as AccessType,
+            nvl(curr.privilege_name, prev.privilege_name)		    as Privilege,
+            --nvl(curr.ADGroupLink, prev.ADGroupLink)				as ADGroupLink,
+            coalesce(curr.table_name, prev.table_name,'*')		    as Objectname,
+            coalesce(curr.column_name, prev.column_name,'*')		as ColumnName,
+            --prev.strFullInstanceName, prev.Datenbankname, prev.[User], prev.[Object], prev.[Schema], prev.[Type], prev.[User Type], prev.[Access Type], prev.[Privilege],
+            case when curr.privilege_name is null and prev.privilege_name is not null then 'DEL'
+                 when prev.privilege_name is null and curr.privilege_name is not null then 'NEW'
+            else 'SAME' end sign_compare
+        FROM curr_object curr
+        FULL OUTER JOIN prev_object prev 
+            ON nvl(prev.username,'')=nvl(curr.username,'') and nvl(prev.rolename,'')=nvl(curr.rolename,'') 
+               and nvl(prev.schemaname,'')=nvl(curr.schemaname,'') and nvl(prev.table_type,'')=nvl(curr.table_type,'') 
+               AND nvl(prev.table_name,'')=nvl(curr.table_name,'')
+               AND nvl(prev.column_name,'')=nvl(curr.column_name,'')
+               AND nvl(prev.usertype,'')=nvl(curr.usertype,'') 
+               and nvl(prev.permission_state,'')=nvl(curr.permission_state,'') 
+               and nvl(prev.privilege_name,'')=nvl(curr.privilege_name,'')
+        WHERE curr.privilege_name is null --without DELETED permission
+                OR prev.privilege_name is null 
+        ORDER BY sign_compare, --strFullInstanceName, 
+        username, rolename, table_type, AccessType, Privilege, schemaname, Objectname, ColumnName
+
+ ;
+
+exception
+    when others then
+      dbms_output.put_line(SQLERRM);
+
+end;
