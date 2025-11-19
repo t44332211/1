@@ -1,0 +1,26 @@
+USE [IB15_DBVerwaltung_ps59_2]
+GO
+
+/****** Object:  StoredProcedure [mssqlauditreport].[usp_personrolelist_para]    Script Date: 19.11.2025 15:09:40 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE   PROCEDURE [mssqlauditreport].[usp_personrolelist_para]
+AS
+BEGIN
+
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+
+	SELECT 'DataEnabler'+space(35 - len('DataEnabler'))	PersonRole UNION ALL
+	SELECT 'DataOwner'+space(35 - len('DataOwner'))		PersonRole UNION ALL
+	SELECT 'DataSteward'+space(35 - len('DataSteward'))	PersonRole 
+END
+GO
+
+
