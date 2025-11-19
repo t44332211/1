@@ -1,7 +1,7 @@
 USE [IB15_DBVerwaltung_ps59_2]
 GO
 
-CREATE TABLE [MONGODBaudit].[T_DBRoleMembers](
+CREATE TABLE [elasticaudit].[T_DBRoleMembers](
 	[dtSnapshot] [smalldatetime] NOT NULL,
 	[idDB] [bigint] NOT NULL,
 	[role_principal_id] [bigint] NOT NULL,
@@ -16,25 +16,18 @@ CREATE TABLE [MONGODBaudit].[T_DBRoleMembers](
 ) ON [PRIMARY]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_DBRoleMembers]  WITH CHECK ADD  CONSTRAINT [FK_T_DBRoleMembers_idDB] FOREIGN KEY([idDB])
-REFERENCES [MONGODB].[T_SQLDatabases] ([IDSQLDatabase])
+ALTER TABLE [elasticaudit].[T_DBRoleMembers]  WITH CHECK ADD  CONSTRAINT [FK_T_DBRoleMembers_idDB] FOREIGN KEY([idDB])
+REFERENCES [elastic].[T_SQLDatabases] ([IDSQLDatabase])
 GO
 
-ALTER TABLE [MONGODBaudit].[T_DBRoleMembers] CHECK CONSTRAINT [FK_T_DBRoleMembers_idDB]
+ALTER TABLE [elasticaudit].[T_DBRoleMembers] CHECK CONSTRAINT [FK_T_DBRoleMembers_idDB]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_DBRoleMembers]  WITH CHECK ADD  CONSTRAINT [FK_T_DBRoleMembers_members] FOREIGN KEY([member_principal_id])
-REFERENCES [MONGODB].[T_SQLDatabasePrincipals] ([principal_id])
+ALTER TABLE [elasticaudit].[T_DBRoleMembers]  WITH CHECK ADD  CONSTRAINT [FK_T_DBRoleMembers_members] FOREIGN KEY([member_principal_id])
+REFERENCES [elastic].[T_SQLDatabasePrincipals] ([principal_id])
 GO
 
-ALTER TABLE [MONGODBaudit].[T_DBRoleMembers] CHECK CONSTRAINT [FK_T_DBRoleMembers_members]
-GO
-
-ALTER TABLE [MONGODBaudit].[T_DBRoleMembers]  WITH CHECK ADD  CONSTRAINT [FK_T_DBRoleMembers_role] FOREIGN KEY([role_principal_id])
-REFERENCES [MONGODB].[T_SQLDatabasePrincipals] ([principal_id])
-GO
-
-ALTER TABLE [MONGODBaudit].[T_DBRoleMembers] CHECK CONSTRAINT [FK_T_DBRoleMembers_role]
+ALTER TABLE [elasticaudit].[T_DBRoleMembers] CHECK CONSTRAINT [FK_T_DBRoleMembers_members]
 GO
 
 

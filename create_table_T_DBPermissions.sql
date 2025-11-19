@@ -1,7 +1,7 @@
 USE [IB15_DBVerwaltung_ps59_2]
 GO
 
-CREATE TABLE [MONGODBaudit].[T_DBPermissions](
+CREATE TABLE [elasticaudit].[T_DBPermissions](
 	[dtSnapshot] [smalldatetime] NOT NULL,
 	[idDB] [bigint] NOT NULL,
 	[class] [tinyint] NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE [MONGODBaudit].[T_DBPermissions](
 	[grantee_principal_id] [bigint] NOT NULL,
 	[grantor_principal_id] [bigint] NULL,
 	[type] [char](4) NOT NULL,
-	[permission_name] [nvarchar](128) NOT NULL,
+	[permission_name] [nvarchar](1000) NOT NULL,
 	[state] [char](1) NOT NULL,
 	[state_desc] [nvarchar](60) NULL,
  CONSTRAINT [PK_T_DBPermissions] PRIMARY KEY CLUSTERED 
@@ -28,28 +28,25 @@ CREATE TABLE [MONGODBaudit].[T_DBPermissions](
 ) ON [PRIMARY]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_DBPermissions] ADD  DEFAULT ((0)) FOR [major_id]
+ALTER TABLE [elasticaudit].[T_DBPermissions]  WITH CHECK ADD  CONSTRAINT [FK_T_DBPermissions_grantee] FOREIGN KEY([grantee_principal_id])
+REFERENCES [elastic].[T_SQLDatabasePrincipals] ([principal_id])
 GO
 
-ALTER TABLE [MONGODBaudit].[T_DBPermissions]  WITH CHECK ADD  CONSTRAINT [FK_T_DBPermissions_grantee] FOREIGN KEY([grantee_principal_id])
-REFERENCES [MONGODB].[T_SQLDatabasePrincipals] ([principal_id])
+ALTER TABLE [elasticaudit].[T_DBPermissions] CHECK CONSTRAINT [FK_T_DBPermissions_grantee]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_DBPermissions] CHECK CONSTRAINT [FK_T_DBPermissions_grantee]
+ALTER TABLE [elasticaudit].[T_DBPermissions]  WITH CHECK ADD  CONSTRAINT [FK_T_DBPermissions_grantor] FOREIGN KEY([grantor_principal_id])
+REFERENCES [elastic].[T_SQLDatabasePrincipals] ([principal_id])
 GO
 
-ALTER TABLE [MONGODBaudit].[T_DBPermissions]  WITH CHECK ADD  CONSTRAINT [FK_T_DBPermissions_grantor] FOREIGN KEY([grantor_principal_id])
-REFERENCES [MONGODB].[T_SQLDatabasePrincipals] ([principal_id])
+ALTER TABLE [elasticaudit].[T_DBPermissions] CHECK CONSTRAINT [FK_T_DBPermissions_grantor]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_DBPermissions] CHECK CONSTRAINT [FK_T_DBPermissions_grantor]
+ALTER TABLE [elasticaudit].[T_DBPermissions]  WITH CHECK ADD  CONSTRAINT [FK_T_DBPermissions_idDB] FOREIGN KEY([idDB])
+REFERENCES [elastic].[T_SQLDatabases] ([IDSQLDatabase])
 GO
 
-ALTER TABLE [MONGODBaudit].[T_DBPermissions]  WITH CHECK ADD  CONSTRAINT [FK_T_DBPermissions_idDB] FOREIGN KEY([idDB])
-REFERENCES [MONGODB].[T_SQLDatabases] ([IDSQLDatabase])
-GO
-
-ALTER TABLE [MONGODBaudit].[T_DBPermissions] CHECK CONSTRAINT [FK_T_DBPermissions_idDB]
+ALTER TABLE [elasticaudit].[T_DBPermissions] CHECK CONSTRAINT [FK_T_DBPermissions_idDB]
 GO
 
 

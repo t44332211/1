@@ -1,7 +1,7 @@
 USE [IB15_DBVerwaltung_ps59_1]
 GO
 
-CREATE   VIEW [MONGODBauditreport].[vOverview_WhiteList]  WITH SCHEMABINDING AS
+CREATE OR ALTER VIEW [elasticauditreport].[vOverview_WhiteList]  WITH SCHEMABINDING AS
 SELECT [User]
       ,[DBRole]
       ,[Zugriff]
@@ -10,7 +10,5 @@ SELECT [User]
       ,[Schema]
       ,[Objecktname]
       ,[Spalte]
-  FROM [mssqlaudit].[WhiteList]
-GO
-
-
+  FROM [elasticaudit].[WhiteList]
+  GO

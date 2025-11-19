@@ -1,7 +1,7 @@
-USE [IB15_DBVerwaltung_ps59_1]
+USE [IB15_DBVerwaltung_ps59_2]
 GO
 
-CREATE TABLE [MONGODBauditreport].[WhiteList](
+CREATE TABLE [elasticauditreport].[WhiteList](
 	[User] [nvarchar](255) NULL,
 	[DBRole] [nvarchar](255) NULL,
 	[Zugriff] [nvarchar](255) NULL,

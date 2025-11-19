@@ -1,7 +1,7 @@
 USE [IB15_DBVerwaltung_ps59_2]
 GO
 
-CREATE TABLE [MONGODBaudit].[T_DBPrincipals](
+CREATE TABLE [elasticaudit].[T_DBPrincipals](
 	[dtSnapshot] [smalldatetime] NOT NULL,
 	[idDB] [bigint] NOT NULL,
 	[name] [nvarchar](512) NOT NULL,
@@ -28,18 +28,18 @@ CREATE TABLE [MONGODBaudit].[T_DBPrincipals](
 ) ON [PRIMARY]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_DBPrincipals]  WITH CHECK ADD  CONSTRAINT [FK_T_DBPrincipals_principle_id] FOREIGN KEY([principal_id])
-REFERENCES [MONGODB].[T_SQLDatabasePrincipals] ([principal_id])
+ALTER TABLE [elasticaudit].[T_DBPrincipals]  WITH CHECK ADD  CONSTRAINT [FK_T_DBPrincipals_principle_id] FOREIGN KEY([principal_id])
+REFERENCES [elastic].[T_SQLDatabasePrincipals] ([principal_id])
 GO
 
-ALTER TABLE [MONGODBaudit].[T_DBPrincipals] CHECK CONSTRAINT [FK_T_DBPrincipals_principle_id]
+ALTER TABLE [elasticaudit].[T_DBPrincipals] CHECK CONSTRAINT [FK_T_DBPrincipals_principle_id]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_DBPrincipals]  WITH CHECK ADD  CONSTRAINT [FK_T_SQLDatabasePrincipals_idDB] FOREIGN KEY([idDB])
-REFERENCES [MONGODB].[T_SQLDatabases] ([IDSQLDatabase])
+ALTER TABLE [elasticaudit].[T_DBPrincipals]  WITH CHECK ADD  CONSTRAINT [FK_T_SQLDatabasePrincipals_idDB] FOREIGN KEY([idDB])
+REFERENCES [elastic].[T_SQLDatabases] ([IDSQLDatabase])
 GO
 
-ALTER TABLE [MONGODBaudit].[T_DBPrincipals] CHECK CONSTRAINT [FK_T_SQLDatabasePrincipals_idDB]
+ALTER TABLE [elasticaudit].[T_DBPrincipals] CHECK CONSTRAINT [FK_T_SQLDatabasePrincipals_idDB]
 GO
 
 

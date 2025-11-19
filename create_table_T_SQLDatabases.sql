@@ -1,7 +1,7 @@
 USE [IB15_DBVerwaltung_ps59_2]
 GO
 
-CREATE TABLE [MONGODB].[T_SQLDatabases](
+CREATE TABLE [elastic].[T_SQLDatabases](
 	[IDSQLDatabase] [bigint] NOT NULL,
 	[dbid] [nvarchar](255) NULL,
 	[IDSQLServerInstance] [int] NOT NULL,
@@ -9,39 +9,39 @@ CREATE TABLE [MONGODB].[T_SQLDatabases](
 	[intDatabaseID] [int] NULL,
 	[intDBSize]  AS (isnull([dataSizeMB],(0))+isnull([logSizeMB],(0))),
 	[dtLastAccessed] [datetime] NULL,
-	[dtCreateDate] [datetime] NOT NULL,
+	[dtCreateDate] [datetime] NULL,
 	[tableCount] [int] NULL,
 	[indexCount] [int] NULL,
 	[dataSizeMB] [int] NULL,
-	[countDataFiles] [tinyint] NOT NULL,
+	[countDataFiles] [tinyint] NULL,
 	[logSizeMB] [int] NULL,
-	[countLogFiles] [tinyint] NOT NULL,
-	[logUsage] [float] NOT NULL,
-	[logUsageMax] [float] NOT NULL,
+	[countLogFiles] [tinyint] NULL,
+	[logUsage] [float] NULL,
+	[logUsageMax] [float] NULL,
 	[reservedPageCount] [bigint] NULL,
 	[indexPageCount] [bigint] NULL,
 	[dataPageCount] [bigint] NULL,
 	[unusedPageCount] [bigint] NULL,
 	[Owner] [varchar](12) NULL,
 	[Substitute1] [varchar](12) NULL,
-	[Substitute2] [varchar](12) NOT NULL,
+	[Substitute2] [varchar](12) NULL,
 	[DataOwner] [varchar](12) NULL,
 	[DataSteward1] [varchar](12) NULL,
 	[DataSteward2] [varchar](12) NULL,
 	[DataSteward3] [varchar](12) NULL,
 	[PLK] [varchar](20) NULL,
-	[bPLKSys] [bit] NOT NULL,
+	[bPLKSys] [bit] NULL,
 	[Application] [varchar](50) NULL,
-	[SLF] [varchar](3) NOT NULL,
-	[bSLFSys] [bit] NOT NULL,
-	[SLA] [varchar](6) NOT NULL,
-	[7x24] [bit] NOT NULL,
-	[WAF] [tinyint] NOT NULL,
-	[WAFPrio] [varchar](3) NOT NULL,
-	[SBK] [tinyint] NOT NULL,
-	[ClientAccess] [bit] NOT NULL,
-	[DeveloperAccess] [bit] NOT NULL,
-	[ackBackupPolicy] [bit] NOT NULL,
+	[SLF] [varchar](3) NULL,
+	[bSLFSys] [bit] NULL,
+	[SLA] [varchar](6) NULL,
+	[7x24] [bit] NULL,
+	[WAF] [tinyint] NULL,
+	[WAFPrio] [varchar](3) NULL,
+	[SBK] [tinyint] NULL,
+	[ClientAccess] [bit] NULL,
+	[DeveloperAccess] [bit] NULL,
+	[ackBackupPolicy] [bit] NULL,
 	[ackBackupPolicyDate] [smalldatetime] NULL,
 	[ackBackupPolicyUser] [varchar](12) NULL,
 	[isOnline] [bit] NULL,
@@ -141,61 +141,25 @@ CREATE TABLE [MONGODB].[T_SQLDatabases](
 ) ON [PRIMARY]
 GO
 
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_IDSQLDatabase]  DEFAULT (NEXT VALUE FOR [MONGODB].[HSequence_ID_SQLDatabase]) FOR [IDSQLDatabase]
+ALTER TABLE [elastic].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_IDSQLDatabase]  DEFAULT (NEXT VALUE FOR [elastic].[HSequence_ID_SQLDatabase]) FOR [IDSQLDatabase]
 GO
 
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_dtCreateDate]  DEFAULT (getdate()) FOR [dtCreateDate]
+ALTER TABLE [elastic].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_dtCreateDate]  DEFAULT (getdate()) FOR [dtCreateDate]
 GO
 
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_countDataFiles]  DEFAULT ((1)) FOR [countDataFiles]
+ALTER TABLE [elastic].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_countDataFiles]  DEFAULT ((1)) FOR [countDataFiles]
 GO
 
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_countLogFiles]  DEFAULT ((1)) FOR [countLogFiles]
+ALTER TABLE [elastic].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_countLogFiles]  DEFAULT ((1)) FOR [countLogFiles]
 GO
 
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_logUsage]  DEFAULT ((0)) FOR [logUsage]
+ALTER TABLE [elastic].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_logUsage]  DEFAULT ((0)) FOR [logUsage]
 GO
 
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_logUsageMax]  DEFAULT ((0)) FOR [logUsageMax]
+ALTER TABLE [elastic].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_logUsageMax]  DEFAULT ((0)) FOR [logUsageMax]
 GO
 
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_Substitute2]  DEFAULT ('') FOR [Substitute2]
-GO
-
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_bPLKSys]  DEFAULT ((0)) FOR [bPLKSys]
-GO
-
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_Application]  DEFAULT ('Microsoft SQL Server') FOR [Application]
-GO
-
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_SLF]  DEFAULT ((3.2)) FOR [SLF]
-GO
-
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_bSLFSys]  DEFAULT ((0)) FOR [bSLFSys]
-GO
-
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_SLA]  DEFAULT ('Bronze') FOR [SLA]
-GO
-
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_7x24]  DEFAULT ((0)) FOR [7x24]
-GO
-
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_WAF]  DEFAULT ((2)) FOR [WAF]
-GO
-
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_WAFPrio]  DEFAULT ((2)) FOR [WAFPrio]
-GO
-
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_SBK]  DEFAULT ((2)) FOR [SBK]
-GO
-
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_ClientAccess]  DEFAULT ((0)) FOR [ClientAccess]
-GO
-
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_DeveloperAccess]  DEFAULT ((0)) FOR [DeveloperAccess]
-GO
-
-ALTER TABLE [MONGODB].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_ackBackupPolicy]  DEFAULT ((0)) FOR [ackBackupPolicy]
+ALTER TABLE [elastic].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_Substitute2]  DEFAULT ('') FOR [Substitute2]
 GO
 
 

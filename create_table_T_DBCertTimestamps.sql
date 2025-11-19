@@ -1,7 +1,7 @@
 USE [IB15_DBVerwaltung_ps59_2]
 GO
 
-CREATE TABLE [MONGODBaudit].[T_DBCertTimestamps](
+CREATE TABLE [elasticaudit].[T_DBCertTimestamps](
 	[idDB] [int] NOT NULL,
 	[dtSnapshot] [smalldatetime] NOT NULL,
  CONSTRAINT [PK_T_DBCertTimestamps] PRIMARY KEY CLUSTERED 

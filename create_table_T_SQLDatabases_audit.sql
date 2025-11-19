@@ -1,7 +1,7 @@
 USE [IB15_DBVerwaltung_ps59_2]
 GO
 
-CREATE TABLE [MONGODBaudit].[T_SQLDatabases](
+CREATE TABLE [elasticaudit].[T_SQLDatabases](
 	[IDSQLDatabase] [bigint] NOT NULL,
 	[dbid] [nvarchar](255) NULL,
 	[IDSQLServerInstance] [int] NOT NULL,
@@ -145,65 +145,65 @@ CREATE TABLE [MONGODBaudit].[T_SQLDatabases](
 ) ON [PRIMARY]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_dtCreateDate]  DEFAULT (getdate()) FOR [dtCreateDate]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_dtCreateDate]  DEFAULT (getdate()) FOR [dtCreateDate]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_countDataFiles]  DEFAULT ((1)) FOR [countDataFiles]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_countDataFiles]  DEFAULT ((1)) FOR [countDataFiles]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_countLogFiles]  DEFAULT ((1)) FOR [countLogFiles]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_countLogFiles]  DEFAULT ((1)) FOR [countLogFiles]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_logUsage]  DEFAULT ((0)) FOR [logUsage]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_logUsage]  DEFAULT ((0)) FOR [logUsage]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_logUsageMax]  DEFAULT ((0)) FOR [logUsageMax]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_logUsageMax]  DEFAULT ((0)) FOR [logUsageMax]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_Substitute2]  DEFAULT ('') FOR [Substitute2]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_Substitute2]  DEFAULT ('') FOR [Substitute2]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_bPLKSys]  DEFAULT ((0)) FOR [bPLKSys]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_bPLKSys]  DEFAULT ((0)) FOR [bPLKSys]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_Application]  DEFAULT ('Microsoft SQL Server') FOR [Application]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_Application]  DEFAULT ('Microsoft SQL Server') FOR [Application]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_SLF]  DEFAULT ((3.2)) FOR [SLF]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_SLF]  DEFAULT ((3.2)) FOR [SLF]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_bSLFSys]  DEFAULT ((0)) FOR [bSLFSys]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_bSLFSys]  DEFAULT ((0)) FOR [bSLFSys]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_SLA]  DEFAULT ('Bronze') FOR [SLA]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_SLA]  DEFAULT ('Bronze') FOR [SLA]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_7x24]  DEFAULT ((0)) FOR [7x24]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_7x24]  DEFAULT ((0)) FOR [7x24]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_WAF]  DEFAULT ((2)) FOR [WAF]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_WAF]  DEFAULT ((2)) FOR [WAF]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_WAFPrio]  DEFAULT ((2)) FOR [WAFPrio]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_WAFPrio]  DEFAULT ((2)) FOR [WAFPrio]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_SBK]  DEFAULT ((2)) FOR [SBK]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_SBK]  DEFAULT ((2)) FOR [SBK]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_ClientAccess]  DEFAULT ((0)) FOR [ClientAccess]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_ClientAccess]  DEFAULT ((0)) FOR [ClientAccess]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_DeveloperAccess]  DEFAULT ((0)) FOR [DeveloperAccess]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_DeveloperAccess]  DEFAULT ((0)) FOR [DeveloperAccess]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_ackBackupPolicy]  DEFAULT ((0)) FOR [ackBackupPolicy]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] ADD  CONSTRAINT [DF_T_SQLDatabases_ackBackupPolicy]  DEFAULT ((0)) FOR [ackBackupPolicy]
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases]  WITH CHECK ADD  CONSTRAINT [FK_T_SQLDatabases_IDSQLDatabase] FOREIGN KEY([IDSQLDatabase])
-REFERENCES [MONGODB].[T_SQLDatabases] ([IDSQLDatabase])
+ALTER TABLE [elasticaudit].[T_SQLDatabases]  WITH CHECK ADD  CONSTRAINT [FK_T_SQLDatabases_IDSQLDatabase] FOREIGN KEY([IDSQLDatabase])
+REFERENCES [elastic].[T_SQLDatabases] ([IDSQLDatabase])
 GO
 
-ALTER TABLE [MONGODBaudit].[T_SQLDatabases] CHECK CONSTRAINT [FK_T_SQLDatabases_IDSQLDatabase]
+ALTER TABLE [elasticaudit].[T_SQLDatabases] CHECK CONSTRAINT [FK_T_SQLDatabases_IDSQLDatabase]
 GO
 
 

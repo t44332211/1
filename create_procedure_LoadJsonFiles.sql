@@ -1,11 +1,9 @@
 USE [IB15_DBVerwaltung_ps59_2]
 GO
 
-CREATE OR ALTER PROCEDURE [MONGODB].[LoadJsonFiles]
-   
+CREATE OR ALTER PROCEDURE [elastic].[LoadJsonFiles]
 AS
 BEGIN
-
 --!!!!!! If necessary
 --EXEC sp_configure 'show advanced options', 1;
 --RECONFIGURE;
@@ -19,9 +17,9 @@ CREATE TABLE #FileList(
 
 
  DECLARE @FolderPath NVARCHAR(255);
- SET @FolderPath  = '\\lan.huk-coburg.de\Prj-REZUDB\TEAM\Arbeitsbereich_ps733\MONGODB_Scripts\MONGO_json_files\';
- -- SET @FolderPath = 'O:\Prj-REZUDB\TEAM\Arbeitsbereich_ps733\MONGODB_Scripts\MONGO_json_files\';
- 
+ SET @FolderPath  = '\\lan.huk-coburg.de\Prj-REZUDB\TEAM\Arbeitsbereich_ps733\ELASTICAUDIT_Scripts\Json filee\';
+  -- SET @FolderPath = 'O:\Prj-REZUDB\TEAM\Arbeitsbereich_ps733\ELASTICAUDIT_Scripts\Json filee\';
+
 DECLARE @cmd NVARCHAR(4000);
 SET @cmd = 'dir "' + @FolderPath + '" /b /s';
 
@@ -57,34 +55,17 @@ BEGIN
 	SET @CreateDateTime = (SELECT TOP 1 LEFT(Line,17)
 	FROM #DirOutput WHERE Line is not null);
 
-	IF @CurrentFileName LIKE '%access%'  
-	BEGIN
-		SET @Sql = 'INSERT INTO [MONGODB].[JsonImportStaging_access] (snapshot_timestamp,RawJson)
-		SELECT CONVERT(DATETIME, ''' + @CreateDateTime + ''', 120) , BulkColumn
-		FROM OPENROWSET (
-			BULK ''' + @CurrentFileName + ''',
-			SINGLE_CLOB
-		) AS j;';
+	SET @Sql = 'INSERT INTO [elasticaudit].[JsonImportStaging] (snapshot_timestamp,RawJson)
+	SELECT CONVERT(DATETIME, ''' + @CreateDateTime + ''', 120), BulkColumn
+	FROM OPENROWSET (
+		BULK ''' + @CurrentFileName + ''',
+		SINGLE_CLOB
+	) AS j;';
 
-		EXEC sp_executesql @Sql;
+	EXEC sp_executesql @Sql;
 
-		--write log import
-		INSERT INTO [MONGODB].[JsonImportLog] VALUES (@CurrentFileName,'access',@CreateDateTime,GETDATE());
-	END
-	ELSE IF @CurrentFileName LIKE '%federation%'  
-	BEGIN
-		SET @Sql = 'INSERT INTO [MONGODB].[JsonImportStaging_federation] (snapshot_timestamp,RawJson)
-		SELECT CONVERT(DATETIME, ''' + @CreateDateTime + ''', 120), BulkColumn
-		FROM OPENROWSET (
-			BULK ''' + @CurrentFileName + ''',
-			SINGLE_CLOB
-		) AS j;';
-
-		EXEC sp_executesql @Sql;
-
-		--write log import
-		INSERT INTO [MONGODB].[JsonImportLog] VALUES (@CurrentFileName,'federation',@CreateDateTime,GETDATE());
-	END
+	--write log import
+	INSERT INTO [elastic].[JsonImportLog] VALUES (@CurrentFileName,@CreateDateTime,GETDATE());
 
 	FETCH NEXT FROM FileCursor INTO @CurrentFileName;
 END
@@ -94,9 +75,7 @@ END
 --EXEC sp_configure 'xp_cmdshell', 0;
 --RECONFIGURE;
 
-
 END
-
 GO
 
 

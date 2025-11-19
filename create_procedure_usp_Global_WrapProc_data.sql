@@ -1,12 +1,7 @@
 USE [IB15_DBVerwaltung_ps59_1]
 GO
-/****** Object:  StoredProcedure [mssqlauditreport].[usp_Global_WrapProc_data]    Script Date: 23.07.2025 15:12:34 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 
-CREATE OR ALTER PROCEDURE [MONGODBauditreport].[usp_Global_WrapProc_data]
+CREATE OR ALTER PROCEDURE [elasticauditreport].[usp_Global_WrapProc_data]
 	@serverName NVARCHAR(max) = NULL,  --for multiple values
 	@dbName		NVARCHAR(max) = NULL,  --for multiple values
 	@snapshot	NVARCHAR(max) = NULL,  --for multiple values
@@ -18,10 +13,10 @@ BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
 	-- interfering with SELECT statements.
 	SET NOCOUNT ON;
-	DECLARE @Parameters  [MONGODBauditreport].[TT_InputParameters] 
+	DECLARE @Parameters  [elasticauditreport].[TT_InputParameters] 
 	INSERT INTO  @Parameters
-	exec [MONGODBauditreport].[usp_DatenbankenByUser_para] @serverName, @dbName, @snapshot, @personrole, @latecert, @whitelist
+	exec [elasticauditreport].[usp_DatenbankenByUser_para] @serverName, @dbName, @snapshot, @personrole, @latecert, @whitelist
 
-	exec [MONGODBauditreport].[usp_globalperm_data] @Parameters=@Parameters
+	exec [elasticauditreport].[usp_globalperm_data] @Parameters=@Parameters
 
 END

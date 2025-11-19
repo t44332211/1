@@ -1,7 +1,7 @@
 USE [IB15_DBVerwaltung_ps59_1]
 GO
 
-CREATE OR ALTER PROCEDURE [MONGODBauditreport].[usp_databaselist_para]
+CREATE OR ALTER PROCEDURE [elasticauditreport].[usp_databaselist_para]
 	@serverName  NVARCHAR(max)  = NULL --for multiple values
 	--,@personrole NVARCHAR(max)  = NULL --for multiple values
 AS
@@ -9,16 +9,16 @@ BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
 	-- interfering with SELECT statements.
 	SET NOCOUNT ON;
-	
+
 	DECLARE @admin BIT = 0;
 	EXECUTE AS CALLER;
 	SELECT @admin = IS_MEMBER('LAN\GgpAdf-ApplDatenbankserver-MSSQL')
-	--SELECT @admin = IS_MEMBER('LAN\GgpAcc-SSISAcc-IB15Verwaltung');
+	--SELECT @admin = IS_MEMBER('LAN\GgpAcc-SSISAcc-IB15Verwaltung')
 	REVERT;
 
 	SELECT DISTINCT  tab1.IDSQLDatabase
 					,tab1.Datenbankname AS databasename
-	FROM [MONGODBauditreport].[get_OverviewDatabases_online] (@serverName) tab1
+	FROM [elasticauditreport].[get_OverviewDatabases_online] (@serverName) tab1
 	WHERE (@admin=1 --admin
 		OR
 		(  

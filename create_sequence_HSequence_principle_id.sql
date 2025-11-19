@@ -1,8 +1,8 @@
 USE [IB15_DBVerwaltung_ps59_2]
 GO
 
-/****** Object:  Sequence [MONGODB].[HSequence_principle_id]    Script Date: 07.08.2025 15:46:03 ******/
-CREATE SEQUENCE [MONGODB].[HSequence_principle_id] 
+/****** Object:  Sequence [elastic].[HSequence_principle_id]    Script Date: 07.08.2025 15:57:10 ******/
+CREATE SEQUENCE [elastic].[HSequence_principle_id] 
  AS [bigint]
  START WITH 1
  INCREMENT BY 1

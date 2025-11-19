@@ -1,7 +1,7 @@
 USE [IB15_DBVerwaltung_ps59_1]
 GO
 
-CREATE TYPE [MONGODBauditreport].[TT_InputParameters] AS TABLE(
+CREATE TYPE [elasticauditreport].[TT_InputParameters] AS TABLE(
 	[id] [int] NULL,
 	[timestamp] [smalldatetime] NULL,
 	[IDSQLDatabase] [int] NULL,
@@ -20,7 +20,7 @@ CREATE TYPE [MONGODBauditreport].[TT_InputParameters] AS TABLE(
 	[idtimestampprev] [int] NULL,
 	[timestamp_prev] [smalldatetime] NULL,
 	[whitelist] [bit] NULL,
-	[principal_id] [bigint] NULL
+	principal_id bigint
 )
 GO
 

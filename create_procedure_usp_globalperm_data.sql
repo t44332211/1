@@ -1,9 +1,9 @@
 USE [IB15_DBVerwaltung_ps59_1]
 GO
 
-CREATE OR ALTER PROCEDURE [MONGODBauditreport].[usp_globalperm_data]
+CREATE OR ALTER PROCEDURE [elasticauditreport].[usp_globalperm_data]
 (
-	@Parameters [MONGODBauditreport].[TT_InputParameters]  READONLY
+	@Parameters [elasticauditreport].[TT_InputParameters]  READONLY
 )
 AS
 BEGIN
@@ -21,26 +21,27 @@ BEGIN
 			--dPr.default_schema_name, 
 			dPerm.permission_name, dPerm.PermissionState, 
 			'*' SchemaName,
-			'DATABASE' ObjectType,
-			'*' ObjectName, 
+			isnull(dPerm.major_type_desc,'DATABASE') ObjectType,
+			isnull(dPerm.major_name,'*') ObjectName, 
 			'*' ColumnName
 	INTO #curr_global
 	FROM @Parameters p
 	CROSS APPLY (select dPerm.grantee_principal_id, dPerm.granteeName, dPerm.granteeType, dPerm.granteeType_desc,
-						 dPerm.major_id, dPerm.permission_name, dPerm.state_desc PermissionState
-				from [MONGODBauditreport].[get_OverviewDBPermissions] (p.strFullInstanceName, p.Datenbankname) dPerm 
+						 dPerm.major_id, dPerm.major_name, dPerm.major_type, dPerm.major_type_desc, --dPerm.major_schema_name,
+						 dPerm.permission_name, dPerm.state_desc PermissionState--, dPerm.column_name
+				from [elasticauditreport].[get_OverviewDBPermissions] (p.strFullInstanceName, p.Datenbankname) dPerm 
 				where  convert(smalldatetime,p.timestamp,102) = dPerm.dtSnapshot
 				AND NOT (dPerm.granteeName = 'public' AND dPerm.granteeType_desc = 'DATABASE_ROLE' AND  dPerm.state_desc = 'GRANT')
 				AND dPerm.permission_name = 'CONNECT'
 				AND (isnull(p.whitelist,0)=0
-					OR NOT EXISTS (select 1 from [MONGODBauditreport].[vOverview_WhiteList] wl
+					OR NOT EXISTS (select 1 from [elasticauditreport].[vOverview_WhiteList] wl
 								  where (wl.[User] is null or (wl.[User]=iif(dPerm.granteeType_desc='DATABASE_ROLE','', dPerm.granteeName)))
 								  and (wl.DBRole is null or (wl.DBRole=iif(dPerm.granteeType_desc='DATABASE_ROLE', dPerm.granteeName,'')))
 								  and (wl.Zugriff is null or (wl.Zugriff=dPerm.state_desc))
 								  and (wl.Berechtgung is null or (wl.Berechtgung=dPerm.permission_name))
-								  and (wl.Objecktyp is null or (wl.Objecktyp='DATABASE' ))
+								  and (wl.Objecktyp is null or (wl.Objecktyp=isnull(dPerm.major_type_desc,'DATABASE') ))
 								  and (wl.[Schema] is null or (wl.[Schema]  = '*'))
-								  and (wl.Objecktname is null or (wl.Objecktname='*'))
+								  and (wl.Objecktname is null or (wl.Objecktname=isnull(dPerm.major_name,'*')))
 								  and (wl.Spalte is null or (wl.Spalte='*' ))
 								  )
 					)
@@ -59,26 +60,27 @@ BEGIN
 			--dPr.default_schema_name, 
 			dPerm.permission_name, dPerm.PermissionState, 
 			'*' SchemaName,
-			'DATABASE' ObjectType,
-			'*' ObjectName, 
+			isnull(dPerm.major_type_desc,'DATABASE') ObjectType,
+			isnull(dPerm.major_name,'*') ObjectName, 
 			'*' ColumnName
 	INTO #prev_global
 	FROM @Parameters p
 	CROSS APPLY  (	select dPerm.grantee_principal_id, dPerm.granteeName, dPerm.granteeType, dPerm.granteeType_desc,
-						 dPerm.major_id, dPerm.permission_name, dPerm.state_desc PermissionState
-					from [MONGODBauditreport].[get_OverviewDBPermissions] (p.strFullInstanceName, p.Datenbankname) dPerm 
+						 dPerm.major_id, dPerm.major_name, dPerm.major_type, dPerm.major_type_desc,-- dPerm.major_schema_name,
+						 dPerm.permission_name, dPerm.state_desc PermissionState--, dPerm.column_name
+					from [elasticauditreport].[get_OverviewDBPermissions] (p.strFullInstanceName, p.Datenbankname) dPerm 
 					WHERE  convert(smalldatetime,p.timestamp_prev,102) = dPerm.dtSnapshot
 						AND NOT (dPerm.granteeName = 'public' AND dPerm.granteeType_desc = 'DATABASE_ROLE' AND  dPerm.state_desc = 'GRANT')
 						AND dPerm.permission_name = 'CONNECT'
 						AND (isnull(p.whitelist,0)=0
-							OR NOT EXISTS (select 1 from [MONGODBauditreport].[vOverview_WhiteList] wl
+							OR NOT EXISTS (select 1 from [elasticauditreport].[vOverview_WhiteList] wl
 										  where (wl.[User] is null or (wl.[User]=iif(dPerm.granteeType_desc='DATABASE_ROLE','', dPerm.granteeName)))
 										  and (wl.DBRole is null or (wl.DBRole=iif(dPerm.granteeType_desc='DATABASE_ROLE', dPerm.granteeName,'')))
 										  and (wl.Zugriff is null or (wl.Zugriff=dPerm.state_desc))
 										  and (wl.Berechtgung is null or (wl.Berechtgung=dPerm.permission_name))
-										  and (wl.Objecktyp is null or (wl.Objecktyp='DATABASE' ))
+										  and (wl.Objecktyp is null or (wl.Objecktyp=isnull(dPerm.major_type_desc,'DATABASE') ))
 										  and (wl.[Schema] is null or (wl.[Schema]  = '*'))
-										  and (wl.Objecktname is null or (wl.Objecktname='*'))
+										  and (wl.Objecktname is null or (wl.Objecktname=isnull(dPerm.major_name,'*')))
 										  and (wl.Spalte is null or (wl.Spalte='*' ))
 										  )
 							)

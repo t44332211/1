@@ -1,7 +1,7 @@
 USE [IB15_DBVerwaltung_ps59_2]
 GO
 
-CREATE TABLE [MONGODB].[T_SQLServerInstances](
+CREATE TABLE [elasticaudit].[T_SQLServerInstances](
 	[IDSQLServerInstance] [int] NOT NULL,
 	[IDSQLServer] [int] NULL,
 	[strInstanceName] [varchar](50) NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE [MONGODB].[T_SQLServerInstances](
 ) ON [PRIMARY]
 GO
 
-ALTER TABLE [MONGODB].[T_SQLServerInstances] ADD  CONSTRAINT [DF_T_SQLServerInstances_ID]  DEFAULT (NEXT VALUE FOR [MONGODB].[HSequence_ID_SQLServerInstances]) FOR [IDSQLServerInstance]
+ALTER TABLE [elasticaudit].[T_SQLServerInstances] ADD  CONSTRAINT [DF_T_SQLServerInstances_ID]  DEFAULT (NEXT VALUE FOR [ELASTICaudit].[HSequence_ID_SQLServerInstances]) FOR [IDSQLServerInstance]
 GO
 
 
