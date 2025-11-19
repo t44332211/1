@@ -1,0 +1,16 @@
+create or replace PROCEDURE usp_personrolelist_para (
+  p_recordset out SYS_REFCURSOR
+)
+as
+begin
+    open p_recordset for
+        select RPAD('DataEnabler',35) 	PersonRole from dual union
+        select RPAD('DataOwner',35) 	PersonRole from dual   union
+        select RPAD('DataSteward',35) 	PersonRole from dual 
+        ;
+
+exception
+    when others then
+      dbms_output.put_line(SQLERRM);
+
+end;
