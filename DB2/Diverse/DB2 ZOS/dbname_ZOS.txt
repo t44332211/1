@@ -1,0 +1,69 @@
+select
+		T.ID,
+		T.NAME,
+		T.HOSTLOESCHEN,
+		V.RACFGRUPPE,
+		V.USERNAME,
+		V.ORGA
+FROM AUTH.TA_DB2_ZOS_TAVERASACHGEBIET T
+LEFT JOIN AUTH.TA_DB2_ZOS_VWVERARACFGRUPPEN V
+	ON V.RACFGRUPPE LIKE '%' ||T.HOSTLOESCHEN || '%';
+	
+	
+select * from auth.ta_db2_zos_tabauth;
+select * from auth.ta_db2_zos_tarezudbtabauth;
+select * from auth.ta_db2_zos_taverasachgebiet; --sachgebiet
+select * from auth.ta_db2_zos_vwveraracfgruppen; --orga
+select * from auth.ta_db2_zos_taracf2_dbpr;
+select * from auth_db2_zos_report.VW_AUTH_DB2_ZOS_SACHGEBIET;
+
+
+select distinct s.SYSPLEX_CMDB_NAME,s.sachgebiet
+from auth_db2_zos_report.vw_report_db2_zos_tabauth s
+left join auth_db2_zos_report.VW_AUTH_DB2_ZOS_SACHGEBIET dbas
+	on dbas.sachgebiet=s.sachgebiet
+WHERE ( 1 = (select 1 from AUTH_DB2_ZOS_REPORT.VW_DB2_ZOS_ADMINS WHERE USERID=(select session_user from sysibm.sysdummy1)) or
+		dbas.DBA_1=(select session_user from sysibm.sysdummy1) or
+		dbas.DBA_2=(select session_user from sysibm.sysdummy1) or
+		dbas.DBA_3=(select session_user from sysibm.sysdummy1) or
+		dbas.DATA_ENABLER_1=(select session_user from sysibm.sysdummy1) or
+		dbas.DATA_ENABLER_2=(select session_user from sysibm.sysdummy1) or
+		dbas.DATA_ENABLER_3=(select session_user from sysibm.sysdummy1) or
+		dbas.DATA_OWNER=(select session_user from sysibm.sysdummy1) or
+		dbas.DATA_STEWARD_1=(select session_user from sysibm.sysdummy1) or
+		dbas.DATA_STEWARD_2=(select session_user from sysibm.sysdummy1) or
+		dbas.DATA_STEWARD_3=(select session_user from sysibm.sysdummy1) );
+		
+		
+----------------------------------------------------------------------------------------------------------------------------------------------------------------		
+		
+select distinct s.zust_orga--, s.sachgebiet
+from auth_db2_zos_report.vw_report_db2_zos_tabauth s
+--left join auth_db2_zos_report.VW_AUTH_DB2_ZOS_SACHGEBIET dbas
+--	on dbas.sachgebiet=s.sachgebiet
+WHERE s.SYSPLEX_CMDB_NAME='DBPR';
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+select distinct s.sachgebiet
+from auth_db2_zos_report.vw_report_db2_zos_tabauth s
+where s.SYSPLEX_CMDB_NAME='DBPR' and s.zust_orga='AE86';
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+select distinct s.snap_ts
+from auth_db2_zos_report.vw_report_db2_zos_tabauth s
+where s.SYSPLEX_CMDB_NAME='DBPR' and s.zust_orga='AE86' and s.sachgebiet='AA';
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+select distinct s.grantee,s.tabschema,s.tabname, s.selectauth, s.insertauth, s.updateauth, s.deleteauth, s.unloadauth, s.triggerauth
+from auth_db2_zos_report.vw_report_db2_zos_tabauth s
+where s.SYSPLEX_CMDB_NAME='DBPR' and s.zust_orga='AE86' and s.sachgebiet='AA' and VARCHAR_FORMAT(s.SNAP_TS,'DD.MM.YYYY HH24:MI:SS')='24.07.2025 18:00:00'
+
+
+
+
+
+
+

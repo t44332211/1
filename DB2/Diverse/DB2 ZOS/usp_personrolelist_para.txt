@@ -1,0 +1,20 @@
+CREATE OR REPLACE PROCEDURE AUTH_DB2_ZOS_REPORT.USP_PERSONROLELIST_PARA ( )
+  SPECIFIC USP_PERSONROLELIST_PARA
+  DYNAMIC RESULT SETS 1
+  LANGUAGE SQL
+  NOT DETERMINISTIC
+  EXTERNAL ACTION
+  MODIFIES SQL DATA
+  CALLED ON NULL INPUT
+  INHERIT SPECIAL REGISTERS
+  OLD SAVEPOINT LEVEL
+BEGIN 
+  DECLARE cur CURSOR WITH RETURN FOR
+		select RPAD('DataEnabler',35) 	PersonRole from sysibm.sysdummy1   
+		union all
+        select RPAD('DataOwner',35) 	PersonRole from sysibm.sysdummy1   
+        union all
+        select RPAD('DataSteward',35) 	PersonRole from sysibm.sysdummy1;
+        
+    OPEN cur;
+END

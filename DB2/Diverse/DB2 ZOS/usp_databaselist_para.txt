@@ -1,0 +1,30 @@
+CREATE OR REPLACE PROCEDURE AUTH_DB2_ZOS_REPORT.USP_DATABASELIST_PARA ( )
+  SPECIFIC USP_DATABASELIST_PARA
+  DYNAMIC RESULT SETS 1
+  LANGUAGE SQL
+  NOT DETERMINISTIC
+  EXTERNAL ACTION
+  MODIFIES SQL DATA
+  CALLED ON NULL INPUT
+  INHERIT SPECIAL REGISTERS
+  OLD SAVEPOINT LEVEL
+BEGIN 
+  DECLARE cur CURSOR WITH RETURN FOR
+ 	SELECT DISTINCT RPAD(s.SYSPLEX_CMDB_NAME, 43) DBNAME--,s.sachgebiet
+	FROM AUTH_DB2_ZOS_REPORT.VW_REPORT_DB2_ZOS_TABAUTH s
+	LEFT JOIN AUTH_DB2_ZOS_REPORT.VW_AUTH_DB2_ZOS_SACHGEBIET dbas
+		ON dbas.SACHGEBIET=s.SACHGEBIET
+	WHERE ( 1 = (select 1 from AUTH_DB2_ZOS_REPORT.VW_DB2_ZOS_ADMINS WHERE USERID=(select session_user from sysibm.sysdummy1)) or
+		dbas.DBA_1=(select session_user from sysibm.sysdummy1) or
+		dbas.DBA_2=(select session_user from sysibm.sysdummy1) or
+		dbas.DBA_3=(select session_user from sysibm.sysdummy1) or
+		dbas.DATA_ENABLER_1=(select session_user from sysibm.sysdummy1) or
+		dbas.DATA_ENABLER_2=(select session_user from sysibm.sysdummy1) or
+		dbas.DATA_ENABLER_3=(select session_user from sysibm.sysdummy1) or
+		dbas.DATA_OWNER=(select session_user from sysibm.sysdummy1) or
+		dbas.DATA_STEWARD_1=(select session_user from sysibm.sysdummy1) or
+		dbas.DATA_STEWARD_2=(select session_user from sysibm.sysdummy1) or
+		dbas.DATA_STEWARD_3=(select session_user from sysibm.sysdummy1) );
+		
+	OPEN cur;		
+END

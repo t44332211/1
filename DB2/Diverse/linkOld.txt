@@ -1,0 +1,1 @@
+https://hukberichte/ReportServer?%2fDatenbanken%2fRechte+Rezertifizierung%2fSQL+Server%2fRechteAudit&rs:Format=PDF&dbName=IB35_ITSM_HUB_PR&serverName=VDB02715%5CMSSQL15&snapshotDate=13.08.2025+04:00:00
