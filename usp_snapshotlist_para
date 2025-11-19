@@ -1,0 +1,19 @@
+create or replace PROCEDURE usp_snapshotlist_para (
+  p_db_name in varchar,
+  p_recordset out SYS_REFCURSOR
+)
+as
+begin
+    open p_recordset for
+        select  RPAD(to_char(mv.collection_timestamp,'dd.mm.yyyy hh24:mi:ss'),32) snapshot_timestamp, mv.collection_timestamp
+        from HUK_SNAPSHOTS_METADATA mv
+        where mv.pdb_name = trim(p_db_name)
+        group by to_char(mv.collection_timestamp,'dd.mm.yyyy hh24:mi:ss'), mv.collection_timestamp
+        order by 2 desc
+        ;
+
+exception
+    when others then
+      dbms_output.put_line(SQLERRM);
+
+end;
