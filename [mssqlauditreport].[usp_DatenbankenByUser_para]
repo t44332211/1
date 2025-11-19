@@ -1,0 +1,81 @@
+USE [IB15_DBVerwaltung_ps59_2]
+GO
+
+/****** Object:  StoredProcedure [mssqlauditreport].[usp_DatenbankenByUser_para]    Script Date: 19.11.2025 15:05:09 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE   PROCEDURE [mssqlauditreport].[usp_DatenbankenByUser_para]
+	@serverName NVARCHAR(max) = NULL,  --for multiple values
+	@dbName		NVARCHAR(max) = NULL,  --for multiple values
+	@snapshot	NVARCHAR(max) = NULL,  --for multiple values
+    @personrole NVARCHAR(max) = NULL,   --for multiple values
+	@latecert   NVARCHAR(max) = NULL,	--for multiple values
+	@whitelist  BIT
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+
+	DECLARE @admin BIT = 0;
+	EXECUTE AS CALLER;
+	--SELECT @admin = IS_MEMBER('LAN\GgpAdf-ApplDatenbankserver-MSSQL') 
+	SELECT @admin = IS_MEMBER('LAN\GgpAcc-SSISAcc-IB15Verwaltung');
+	REVERT;
+
+	SELECT DISTINCT
+		 null							AS [id]	
+		,DBO.dtSnapshot				    AS [timestamp]
+		,DBO.idDB						AS [IDSQLDatabase]
+		,DBO.[Datenbankname]
+		,DBO.[strInstanceName]
+		,DBO.[strSQLServerName]
+		,DBO.[strFullInstanceName]
+		,trim(DBO.[Owner])				AS DataEnabler1
+		,trim(DBO.[Substitute1])		AS DataEnabler2
+		,trim(DBO.[Substitute2])		AS DataEnabler3
+		,trim(DBO.[DataOwner])			AS [DataOwner]
+		,trim(DBO.[DataSteward1])		AS [DataSteward1]
+		,trim(DBO.[DataSteward2])		AS [DataSteward2]
+		,trim(DBO.[DataSteward3])		AS [DataSteward3]
+		,trim(@personrole)				AS [PersonRole]	
+		,ssh_prev.id					AS [idtimestampprev]
+		,ssh_prev.timestamp				AS [timestamp_prev]
+		,@whitelist						AS whitelist
+		,u.principal_id
+		,SUBSTRING(ORIGINAL_LOGIN(), CHARINDEX('\', ORIGINAL_LOGIN(), 0) + 1, LEN(ORIGINAL_LOGIN()) - CHARINDEX(ORIGINAL_LOGIN(), '\', 0) - 1) AS LoginName
+	FROM  [mssqlauditreport].[get_OverviewDBObjects] (@serverName, @dbName) DBO
+	OUTER APPLY (select top 1 principal_id from [mssqlaudit].T_DBPrincipals where dtSnapshot=DBO.dtSnapshot and idDB=DBO.idDB and name = ORIGINAL_LOGIN() order by 1) u
+	OUTER APPLY (SELECT TOP(1)  null id, ssh_prev.dtSnapshot timestamp 
+				 --select onlycertificated snapshot
+				 FROM  [mssqlaudit].[T_DBCertTimestamps] ssh_prev 
+				 WHERE  ssh_prev.dtSnapshot < DBO.dtSnapshot
+				   AND convert(smalldatetime,@latecert,102) = (select convert(smalldatetime,value,102) from string_split(@latecert,',') where value is not null)
+				 ORDER BY ssh_prev.dtSnapshot DESC) ssh_prev
+
+	WHERE  (@snapshot IS NULL 
+				OR convert(smalldatetime,DBO.dtSnapshot,102) IN (select convert(smalldatetime,value,102) from string_split(@snapshot,',') where value is not null)
+			)
+			AND (@admin=1 --admin
+				OR
+				(  
+					(DBO.[Owner] = SUBSTRING(ORIGINAL_LOGIN(), CHARINDEX('\', ORIGINAL_LOGIN(), 0) + 1, LEN(ORIGINAL_LOGIN()) - CHARINDEX(ORIGINAL_LOGIN(), '\', 0) - 1)
+					 OR DBO.[Substitute1] =SUBSTRING(ORIGINAL_LOGIN(), CHARINDEX('\', ORIGINAL_LOGIN(), 0) + 1, LEN(ORIGINAL_LOGIN()) - CHARINDEX(ORIGINAL_LOGIN(), '\', 0) - 1)
+					 OR DBO.[Substitute2] = SUBSTRING(ORIGINAL_LOGIN(), CHARINDEX('\', ORIGINAL_LOGIN(), 0) + 1, LEN(ORIGINAL_LOGIN()) - CHARINDEX(ORIGINAL_LOGIN(), '\', 0) - 1)
+					 OR DBO.[DataOwner] =  SUBSTRING(ORIGINAL_LOGIN(), CHARINDEX('\', ORIGINAL_LOGIN(), 0) + 1, LEN(ORIGINAL_LOGIN()) - CHARINDEX(ORIGINAL_LOGIN(), '\', 0) - 1)
+					 OR	DBO.[DataSteward1] = SUBSTRING(ORIGINAL_LOGIN(), CHARINDEX('\', ORIGINAL_LOGIN(), 0) + 1, LEN(ORIGINAL_LOGIN()) - CHARINDEX(ORIGINAL_LOGIN(), '\', 0) - 1)
+					 OR	DBO.[DataSteward2] = SUBSTRING(ORIGINAL_LOGIN(), CHARINDEX('\', ORIGINAL_LOGIN(), 0) + 1, LEN(ORIGINAL_LOGIN()) - CHARINDEX(ORIGINAL_LOGIN(), '\', 0) - 1)
+					 OR	DBO.[DataSteward3] = SUBSTRING(ORIGINAL_LOGIN(), CHARINDEX('\', ORIGINAL_LOGIN(), 0) + 1, LEN(ORIGINAL_LOGIN()) - CHARINDEX(ORIGINAL_LOGIN(), '\', 0) - 1)
+					)
+			)
+		  )
+	
+END
+GO
+
+
