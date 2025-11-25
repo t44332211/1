@@ -1,0 +1,28 @@
+USE [IB15_DBVerwaltung_ps59_3]
+GO
+/****** Object:  StoredProcedure [mssqlauditreport].[usp_Object_WrapProc_data]    Script Date: 24.11.2025 16:22:03 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE OR ALTER PROCEDURE [mssqlauditreport].[usp_Object_WrapProc_pivot]
+	@serverName NVARCHAR(max) = NULL,  --for multiple values
+	@dbName		NVARCHAR(max) = NULL,  --for multiple values
+	@snapshot	NVARCHAR(max) = NULL,  --for multiple values
+    @personrole NVARCHAR(max) = NULL,  --for multiple values
+	@latecert   NVARCHAR(max) = NULL,  --for multiple values
+	@whitelist	BIT
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+	DECLARE @Parameters  [mssqlauditreport].[TT_InputParameters] 
+	INSERT INTO  @Parameters
+	exec [mssqlauditreport].[usp_DatenbankenByUser_para] @serverName, @dbName, @snapshot, @personrole, @latecert, @whitelist
+
+	exec [mssqlauditreport].[usp_objectperm_data_pivot] @Parameters=@Parameters
+
+
+END
