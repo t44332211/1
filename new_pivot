@@ -1,0 +1,109 @@
+USE [IB15_DBVerwaltung_ps59_3]
+GO
+/****** Object:  StoredProcedure [mssqlauditreport].[usp_objectperm_data_pivot]    Script Date: 25.11.2025 13:17:10 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE OR ALTER PROCEDURE [mssqlauditreport].[usp_objectperm_data_pivot]
+(
+	@Parameters [mssqlauditreport].[TT_InputParameters]  READONLY
+)
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+	DECLARE @Columns nvarchar(max), @DynamicSQL nvarchar(max)
+
+	
+	DROP TABLE IF EXISTS #perms
+	CREATE TABLE #perms (
+		[Global]		nvarchar(48)
+	   ,[User]			nvarchar(512)
+	   ,[RoleName]		nvarchar(128)
+	   ,[Schema]		nvarchar(128)
+	   ,[Type]			nvarchar(128)
+	   ,[UserType]		nvarchar(128)
+	   ,[AccessType]	nvarchar(8)
+	   ,[Privilege]		nvarchar(128)
+	   ,[ADGroupLink]	nvarchar(512)
+	   ,[Object]		nvarchar(128)
+	   ,[ColumnName]	nvarchar(128)
+	   ,[signCompare]	nvarchar(8)
+	)
+	
+	INSERT INTO #perms
+	EXEC [mssqlauditreport].[usp_objectperm_data] @Parameters = @Parameters
+   
+
+	-- print @Columns  
+	SELECT 
+		  src.[User]
+		, src.[RoleName]
+		, src.[UserType]
+		, src.[ADGroupLink]
+		, src.[Type]
+		, src.[Schema]
+		, src.[Object]
+		, src.[ColumnName]
+		, src.[signCompare]
+		, [INSERT]     = MAX(CASE WHEN src.[Privilege] = 'INSERT'     THEN 'Y' END)
+		, [EXECUTE]    = MAX(CASE WHEN src.[Privilege] = 'EXECUTE'    THEN 'Y' END)
+		, [VIEW]       = MAX(CASE WHEN src.[Privilege] = 'VIEW'       THEN 'Y' END)
+		, [SHOWPLAN]   = MAX(CASE WHEN src.[Privilege] = 'SHOWPLAN'   THEN 'Y' END)
+		, [ALTER]      = MAX(CASE WHEN src.[Privilege] = 'ALTER'      THEN 'Y' END)
+		, [SELECT]     = MAX(CASE WHEN src.[Privilege] = 'SELECT'     THEN 'Y' END)
+		, [CREATE]     = MAX(CASE WHEN src.[Privilege] = 'CREATE'     THEN 'Y' END)
+		, [UPDATE]     = MAX(CASE WHEN src.[Privilege] = 'UPDATE'     THEN 'Y' END)
+		, [REFERENCES] = MAX(CASE WHEN src.[Privilege] = 'REFERENCES' THEN 'Y' END)
+		, [DELETE]     = MAX(CASE WHEN src.[Privilege] = 'DELETE'     THEN 'Y' END)
+	FROM (
+		SELECT 
+			  p.[User]
+			, p.[RoleName]
+			, p.[UserType]
+			, p.[ADGroupLink]
+			, p.[Type]
+			, p.[Schema]
+			, p.[Object]
+			, p.[ColumnName]
+			, p.[signCompare]
+			, [Privilege] = CASE 
+					WHEN p.[Privilege] LIKE '%SELECT%'  OR p.[Privilege] LIKE '%CONTROL%' OR p.[Privilege] LIKE '%TAKE OWNERSHIP%' THEN 'SELECT'
+					WHEN p.[Privilege] LIKE '%UPDATE%'  OR p.[Privilege] LIKE '%CONTROL%' OR p.[Privilege] LIKE '%TAKE OWNERSHIP%' THEN 'UPDATE'
+					WHEN p.[Privilege] LIKE '%DELETE%'  OR p.[Privilege] LIKE '%CONTROL%' OR p.[Privilege] LIKE '%TAKE OWNERSHIP%' THEN 'DELETE'
+					WHEN p.[Privilege] LIKE '%CREATE%'  OR p.[Privilege] LIKE '%CONTROL%' OR p.[Privilege] LIKE '%TAKE OWNERSHIP%' THEN 'CREATE'
+					WHEN p.[Privilege] LIKE '%ALTER%'   OR p.[Privilege] LIKE '%CONTROL%' OR p.[Privilege] LIKE '%TAKE OWNERSHIP%' THEN 'ALTER'
+					WHEN p.[Privilege] LIKE '%DROP%'    THEN 'DELETE'
+					WHEN p.[Privilege] LIKE '%EXECUTE%' OR p.[Privilege] LIKE '%CONTROL%' OR p.[Privilege] LIKE '%TAKE OWNERSHIP%' THEN 'EXECUTE'
+					WHEN p.[Privilege] LIKE '%VIEW%'    OR p.[Privilege] LIKE '%CONTROL%' OR p.[Privilege] LIKE '%TAKE OWNERSHIP%' THEN 'VIEW'
+					WHEN p.[Privilege] LIKE '%SUBSCRIBE%' THEN 'VIEW'
+					ELSE p.[Privilege] 
+				  END
+		FROM #perms p 
+		WHERE p.Privilege != 'CONNECT'
+	) AS src
+	GROUP BY 
+		  src.[User]
+		, src.[RoleName]
+		, src.[UserType]
+		, src.[ADGroupLink]
+		, src.[Type]
+		, src.[Schema]
+		, src.[Object]
+		, src.[ColumnName]
+		, src.[signCompare]
+	ORDER BY 
+		  src.[User]
+		, src.[RoleName]
+		, src.[UserType]
+		, src.[ADGroupLink]
+		, src.[Type]
+		, src.[Schema]
+		, src.[Object]
+		, src.[ColumnName];
+
+END
