@@ -1,0 +1,55 @@
+USE [IB15_DBVerwaltung_ps59_3]
+GO
+/****** Object:  StoredProcedure [mssqlauditreport].[usp_Object_WrapProc_pivot]    Script Date: 27.11.2025 10:54:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER   PROCEDURE [mssqlauditreport].[usp_Object_WrapProc_pivot]
+    @serverName NVARCHAR(max) = NULL,  --for multiple values
+    @dbName     NVARCHAR(max) = NULL,  --for multiple values
+    @snapshot   NVARCHAR(max) = NULL,  --for multiple values
+    @personrole NVARCHAR(max) = NULL,  --for multiple values
+    @latecert   NVARCHAR(max) = NULL,  --for multiple values
+    @whitelist  BIT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF  @serverName IS NULL
+        AND @dbName IS NULL
+        AND @snapshot IS NULL
+        AND @personrole IS NULL
+        AND @latecert IS NULL
+        AND @whitelist IS NULL
+    BEGIN
+        SELECT TOP 0
+              [User]        = CAST(NULL AS NVARCHAR(512))
+            , [RoleName]    = CAST(NULL AS NVARCHAR(128))
+            , [UserType]    = CAST(NULL AS NVARCHAR(128))
+            , [ADGroupLink] = CAST(NULL AS NVARCHAR(512))
+            , [Type]        = CAST(NULL AS NVARCHAR(128))
+            , [Schema]      = CAST(NULL AS NVARCHAR(128))
+            , [Object]      = CAST(NULL AS NVARCHAR(128))
+            , [ColumnName]  = CAST(NULL AS NVARCHAR(128))
+            , [signCompare] = CAST(NULL AS NVARCHAR(8))
+            , [INSERT]      = CAST(NULL AS NVARCHAR(1))
+            , [EXECUTE]     = CAST(NULL AS NVARCHAR(1))
+            , [VIEW]        = CAST(NULL AS NVARCHAR(1))
+            , [SHOWPLAN]    = CAST(NULL AS NVARCHAR(1))
+            , [ALTER]       = CAST(NULL AS NVARCHAR(1))
+            , [SELECT]      = CAST(NULL AS NVARCHAR(1))
+            , [CREATE]      = CAST(NULL AS NVARCHAR(1))
+            , [UPDATE]      = CAST(NULL AS NVARCHAR(1))
+            , [REFERENCES]  = CAST(NULL AS NVARCHAR(1))
+            , [DELETE]      = CAST(NULL AS NVARCHAR(1));
+        RETURN;
+    END
+    DECLARE @Parameters  [mssqlauditreport].[TT_InputParameters];
+
+    INSERT INTO @Parameters
+    EXEC [mssqlauditreport].[usp_DatenbankenByUser_para] 
+         @serverName, @dbName, @snapshot, @personrole, @latecert, @whitelist;
+
+    EXEC [mssqlauditreport].[usp_objectperm_data_pivot] @Parameters = @Parameters;
+END
