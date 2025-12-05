@@ -1,0 +1,92 @@
+USE [IB15_DBVerwaltung_ps59_3]
+GO
+/****** Object:  StoredProcedure [mssqlauditreport].[usp_objectperm_data_pivot]    Script Date: 05.12.2025 10:47:22 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+ALTER   PROCEDURE [mssqlauditreport].[usp_objectperm_data_pivot]
+(
+	@Parameters [mssqlauditreport].[TT_InputParameters]  READONLY
+)
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+	
+	DROP TABLE IF EXISTS #perms
+	CREATE TABLE #perms (
+		[Global]		nvarchar(48)
+	   ,[User]			nvarchar(512)
+	   ,[RoleName]		nvarchar(128)
+	   ,[Schema]		nvarchar(128)
+	   ,[Type]			nvarchar(128)
+	   ,[UserType]		nvarchar(128)
+	   ,[AccessType]	nvarchar(8)
+	   ,[Privilege]		nvarchar(128)
+	   ,[ADGroupLink]	nvarchar(512)
+	   ,[Object]		nvarchar(128)
+	   ,[ColumnName]	nvarchar(128)
+	   ,[signCompare]	nvarchar(8)
+	)
+	--new and same permission
+	INSERT INTO #perms
+	exec [mssqlauditreport].[usp_objectperm_data] @Parameters=@Parameters
+	--del permission
+	INSERT INTO #perms
+	exec [mssqlauditreport].[usp_delperm_data] @Parameters=@Parameters
+
+	DELETE FROM #perms WHERE [Privilege] = 'CONNECT'
+   
+	select [User], [RoleName], [UserType], [ADGroupLink], [Type], [Schema], [Object], [ColumnName], [signCompare], [INSERT],[EXECUTE],[VIEW],[SHOWPLAN],[ALTER],[SELECT],[CREATE],[UPDATE],[REFERENCES],[DELETE] 
+		  ,[signInsert], [signExecute], [signView], [signShowPlan], [signAlter], [signSelect], [signCreate], [signUpdate], [signReference], [signDelete]
+	from (
+	 select p.[User], p.[RoleName], p.[UserType], p.[ADGroupLink], p.[Type], p.[Schema], p.[Object], p.[ColumnName], p.[signCompare]
+		   ,[Privilege] = case when p.[Privilege] like '%SELECT%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%'   then 'SELECT'
+							   when p.[Privilege] like '%INSERT%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%'   then 'INSERT'
+							   when p.[Privilege] like '%UPDATE%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%'   then 'UPDATE'
+							   when p.[Privilege] like '%DELETE%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%'   then 'DELETE'
+							   when p.[Privilege] like '%CREATE%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%'   then 'CREATE'					 
+							   when p.[Privilege] like '%ALTER%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%'    then 'ALTER'
+							   when p.[Privilege] like '%DROP%'  then 'DELETE'
+							   when p.[Privilege] like '%EXECUTE%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%'  then 'EXECUTE'
+							   when p.[Privilege] like '%VIEW%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%'     then 'VIEW'
+							   when p.[Privilege] like '%SUBSCRIBE%' then 'VIEW'
+							   when p.[Privilege] like '%SHOWPLAN%' then 'SHOWPLAN'
+							   when p.[Privilege] like '%REFERENCES%' then 'REFERENCES'
+						else p.[Privilege] end 
+			,HasPrivilege ='Y'
+			,[signView] = case when p.[Privilege] like '%VIEW%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%' or p.[Privilege] like '%SUBSCRIBE%' then p.signCompare
+			              else 'SAME' end
+			,[signSelect] = case when p.[Privilege] like '%SELECT%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%'  then p.signCompare
+			                else 'SAME' end
+			,[signInsert] = case when p.[Privilege] like '%INSERT%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%'  then p.signCompare
+			                else 'SAME' end
+			,[signUpdate] = case when p.[Privilege] like '%UPDATE%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%'  then p.signCompare
+			                else 'SAME' end	  
+			,[signDelete] = case when p.[Privilege] like '%DELETE%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%' or  p.[Privilege] like '%DROP%' then p.signCompare
+			                else 'SAME' end	
+			,[signCreate] = case when p.[Privilege] like '%CREATE%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%'  then p.signCompare
+			                else 'SAME' end	 
+			,[signAlter] = case when p.[Privilege] like '%ALTER%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%'    then p.signCompare
+			                else 'SAME' end							
+			,[signExecute] = case when p.[Privilege] like '%EXECUTE%' or  p.[Privilege] like '%CONTROL%' or  p.[Privilege] like '%TAKE OWNERSHIP%' then p.signCompare
+			                else 'SAME' end
+			,[signShowPlan] = case when p.[Privilege] like '%SHOWPLAN%' then p.signCompare
+			                  else 'SAME' end
+			,[signReference] = case when p.[Privilege] like '%REFERENCES%' then p.signCompare
+			                   else 'SAME' end
+	 from #perms p 
+	 where p.Privilege != 'CONNECT'
+	 ) as src
+	 PIVOT (
+		MAX(HasPrivilege) FOR Privilege IN ([INSERT],[EXECUTE],[VIEW],[SHOWPLAN],[ALTER],[SELECT],[CREATE],[UPDATE],[REFERENCES],[DELETE]) -- put N by default in the report -- exclude rows where allpermission is null
+	 ) as pp
+	 WHERE COALESCE ([INSERT],[EXECUTE],[VIEW],[SHOWPLAN],[ALTER],[SELECT],[CREATE],[UPDATE],[REFERENCES],[DELETE]) IS NOT NULL
+	 order by --[signCompare], 
+			  [User], RoleName, [Type], [UserType], [Schema], [Object], ColumnName;
+
+END
