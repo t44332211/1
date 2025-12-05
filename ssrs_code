@@ -1,0 +1,5 @@
+=SWITCH(
+    Fields!signSelect.Value = "NEW" OR Fields!signSelect.Value = "DEL", Fields!signSelect.Value,
+    Fields!SELECT.Value = "Y", "Y",
+    TRUE, Nothing
+)
