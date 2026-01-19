@@ -1,0 +1,9 @@
+exists (
+  select 1
+  from dual
+  where upper(sys_context('USERENV','SESSION_USER')) in (
+    select upper(trim(regexp_substr(db.data_enabler,'[^,]+',1,level)))
+    from dual
+    connect by regexp_substr(db.data_enabler,'[^,]+',1,level) is not null
+  )
+)
