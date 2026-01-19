@@ -1,0 +1,97 @@
+create or replace procedure usp_databaselist_para (
+  p_recordset out sys_refcursor
+)
+as
+  l_user varchar2(128) := upper(sys_context('USERENV','SESSION_USER'));
+begin
+  open p_recordset for
+    with
+    principals as (
+      select l_user as principal from dual
+      union
+      select upper(role) from session_roles
+    ),
+
+    db_allowed as (
+      select db.*
+      from rezudb_oracle_databases db
+      where
+        exists (
+          select 1
+          from principals p
+          where p.principal = upper('GGPACC-SEM-ORACLE-DBA')
+        )
+
+        or exists (
+          select 1
+          from principals p
+          where p.principal in ( upper('OMNITRACKER'), upper('ROLE_OMNITRACKER') )
+        )
+
+        or exists (
+          select 1
+          from huk_rezudb_whitelist w
+          where w.attribute = 'USER'
+            and w.is_oracle_admin = 'YES'
+            and upper(w.value) = l_user
+        )
+
+        or exists (
+          select 1
+          from (
+            select trim(regexp_substr(db.data_enabler,'[^,]+',1,level)) token
+            from dual
+            connect by regexp_substr(db.data_enabler,'[^,]+',1,level) is not null
+
+            union all
+            select trim(regexp_substr(db.data_owner,'[^,]+',1,level)) token
+            from dual
+            connect by regexp_substr(db.data_owner,'[^,]+',1,level) is not null
+
+            union all
+            select trim(regexp_substr(db.data_steward,'[^,]+',1,level)) token
+            from dual
+            connect by regexp_substr(db.data_steward,'[^,]+',1,level) is not null
+
+            union all
+            select trim(regexp_substr(db.dba,'[^,]+',1,level)) token
+            from dual
+            connect by regexp_substr(db.dba,'[^,]+',1,level) is not null
+          ) t
+          join principals p
+            on upper(t.token) = p.principal
+        )
+    ),
+
+    all_dbname as (
+      select
+        db.db_name,
+        trim(regexp_substr(nvl(db.ora_ldap_alias, db.db_name), '[^,]+', 1, level)) as db_alias
+      from db_allowed db
+      connect by regexp_substr(nvl(db.ora_ldap_alias, db.db_name), '[^,]+', 1, level) is not null
+        and prior db.db_name = db.db_name
+        and prior nvl(db.ora_ldap_alias, db.db_name) = nvl(db.ora_ldap_alias, db.db_name)
+        and prior sys_guid() is not null
+    )
+
+    select
+      db_name,
+      case
+        when nvl(length(
+               listagg(decode(db_alias, db_name, null, db_alias), ',')
+               within group (order by db_alias)
+             ), 0) = 0
+          then db_name
+        else db_name || ' (' ||
+             listagg(decode(db_alias, db_name, null, db_alias), ',')
+             within group (order by db_alias) || ')'
+      end as databasename
+    from all_dbname
+    group by db_name
+    order by 1;
+
+exception
+  when others then
+    raise;
+end;
+/
