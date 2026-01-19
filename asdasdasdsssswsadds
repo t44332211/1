@@ -1,0 +1,14 @@
+DECLARE
+  l_session DBMS_LDAP.session;
+  l_result  DBMS_LDAP.message;
+BEGIN
+  l_session := DBMS_LDAP.init('ad_server',389);
+  DBMS_LDAP.simple_bind_s(l_session,'cn=admin,dc=domain,dc=com','password');
+  l_result := DBMS_LDAP.search_s(l_session,
+                                 'dc=domain,dc=com',
+                                 DBMS_LDAP.SCOPE_SUBTREE,
+                                 '(sAMAccountName=username)',
+                                 NULL,
+                                 0);
+  -- parse result for group membership
+END;
