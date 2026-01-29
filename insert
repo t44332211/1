@@ -1,0 +1,30 @@
+select
+    'INSERT INTO IAM_AD_EXTRACT 
+    values ('''
+    || ex.HUKID || ''', '''
+    || ex.HUKUID_1 || ''', '''
+    || ex.HUKBMKS || ''', '''
+    || ex.HUKSONDERUSER || ''', '
+    || to_date('''
+    || to_char(ex.CREATIONDATE, 'dd.mm.yyyy hh24:mi:ss')
+    || ''', ''dd.mm.yyyy hh24:mi:ss''), '
+    || to_date('''
+    || to_char(ex.CHANGEDATE, 'dd.mm.yyyy hh24:mi:ss')
+    || ''', ''dd.mm.yyyy hh24:mi:ss''), '''
+    || ex.DELETED || ''', '''
+    || ex.DATEDONE || ''', '''
+    || ex.INFO1 || ''', '''
+    || ex.HUKPERSORGAID_1 || ''', '''
+    || ex.HUKORGA || ''', '''
+    || ex.SN || ''', '''
+    || ex.GIVENNAME || ''', '''
+    || ex.HUKHIERARCHIE || ''', '''
+    || ex.HUKMANAGER || ''', '''
+    || ex.HUKMANAGER_USERID || ''', '''
+    || ex.MAIL || ''', '''
+    || ex.HUKSTATUS || ''', '''
+    || ex.HUKFUNCTION || ''', '''
+    || ex.HUKKOSTENSTELLE || ''', '''
+    || ex.HUKDN_LANAD || '''
+    )'
+from IAM_IMPORT.IAM_AD_EXTRACT ex;
