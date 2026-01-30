@@ -1,0 +1,47 @@
+create or replace PROCEDURE        usp_databaselist_para (
+  p_recordset out SYS_REFCURSOR,
+  p_userID in varchar default sys_context('USERENV','SESSION_USER')
+)
+as
+begin
+    open p_recordset for
+        with all_dbname as (
+            select db.db_name, 
+                    trim(regexp_substr(db.ora_ldap_alias,'[^,]+',1,level)) as db_alias
+            from rezudb_oracle_databases db
+            where 1 = 0 --change 1 = 0 for prod prod 1=1 - for test
+            or exists (select 1 from HUK_REZUDB_WHITELIST where attribute in ('USER','AD') and is_oracle_admin='YES' and value=trim(p_userID))
+            -- add check admin privs for role
+            or exists (select 1 from HUK_REZUDB_WHITELIST w, huk_dba_role_privs rp where w.attribute='ROLE' and w.is_oracle_admin='YES' and rp.granted_role=w.value  and rp.grantee=trim(p_userID))
+            -- todo ad group and omnitracker
+            or trim(p_userID) in  trim(regexp_substr(db.data_enabler,'[^,]+',1,level))
+            or trim(p_userID) in  trim(regexp_substr(db.data_owner,'[^,]+',1,level))
+            or trim(p_userID) in  trim(regexp_substr(db.data_steward,'[^,]+',1,level))
+            or trim(p_userID) in  trim(regexp_substr(db.dba,'[^,]+',1,level))
+            connect by regexp_substr(db.ora_ldap_alias,'[^,]+',1,level) is not null
+              and prior db.db_name=db.db_name
+              and prior db.ora_ldap_alias=db.ora_ldap_alias
+              and prior sys_guid() is not null
+              )
+
+              select  db_name, 
+                      case when nvl(length( listagg(
+                                                    decode(db_alias,db_name,null,db_alias)
+                                                    ,',') within group (order by  db_alias)),0) = 0 then  db_name
+                           when db_name= listagg(
+                                                 decode(db_alias,db_name,null,db_alias)
+                                                 ,',') within group (order by  db_alias) then db_name
+                      else db_name || ' (' || listagg(
+                                                      decode(db_alias,db_name,null,db_alias)
+                                                      ,',') within group (order by  db_alias) || ')'
+                      end databasename
+              from all_dbname 
+              group by db_name
+              order by 1
+      ;
+
+exception
+    when others then
+      dbms_output.put_line(SQLERRM);
+
+end;
