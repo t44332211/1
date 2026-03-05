@@ -1,0 +1,21 @@
+SELECT 
+'INSERT INTO PS733.HUK_DBA_COL_PRIVS VALUES (' ||
+NVL(TO_CHAR(t.DBID),'NULL') || ', ' ||
+'''' || t.PDB_NAME || ''', ' ||
+
+'to_timestamp(''' || 
+TO_CHAR(t.COLLECTION_TIMESTAMP,'dd.mm.yyyy hh24:mi:ss.ff6') || 
+''',''dd.mm.yyyy hh24:mi:ss.ff6''), ' ||
+
+'''' || t.GRANTEE || ''', ' ||
+'''' || t.OWNER || ''', ' ||
+'''' || t.TABLE_NAME || ''', ' ||
+'''' || t.COLUMN_NAME || ''', ' ||
+'''' || t.GRANTOR || ''', ' ||
+'''' || t.PRIVILEGE || ''', ' ||
+'''' || t.GRANTABLE || ''', ' ||
+'''' || t.COMMON || ''', ' ||
+'''' || t.INHERITED || ''', ' ||
+NVL(TO_CHAR(t.CON_ID),'NULL') ||
+');'
+FROM PS733.HUK_DBA_COL_PRIVS t;
