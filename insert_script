@@ -1,0 +1,30 @@
+CREATE TABLE "PS733"."HUK_DBA_COL_PRIVS" 
+   (	"DBID" NUMBER, 
+	"PDB_NAME" VARCHAR2(128 BYTE), 
+	"COLLECTION_TIMESTAMP" TIMESTAMP (6), 
+	"GRANTEE" VARCHAR2(128 BYTE), 
+	"OWNER" VARCHAR2(128 BYTE), 
+	"TABLE_NAME" VARCHAR2(128 BYTE), 
+	"COLUMN_NAME" VARCHAR2(128 BYTE), 
+	"GRANTOR" VARCHAR2(128 BYTE), 
+	"PRIVILEGE" VARCHAR2(40 BYTE), 
+	"GRANTABLE" VARCHAR2(3 BYTE), 
+	"COMMON" VARCHAR2(3 BYTE), 
+	"INHERITED" VARCHAR2(3 BYTE), 
+	"CON_ID" 
+
+
+
+
+
+select 'INSERT INTO IAM_AD_EXTRACT 
+    values ('''|| ex.HUKID || ''', '''|| ex.HUKUID_1 || ''', '''|| ex.HUKBMKS || ''', '''|| ex.HUKSONDERUSER || '''
+    , to_date('''|| to_char(ex.CREATIONDATE, 'dd.mm.yyyy hh24:mi:ss') || ''', ''dd.mm.yyyy hh24:mi:ss'')
+    , to_date('''|| to_char(ex.CHANGEDATE, 'dd.mm.yyyy hh24:mi:ss')|| ''', ''dd.mm.yyyy hh24:mi:ss'')
+    , '''|| ex.DELETED || ''', '''|| ex.DATEDONE || ''', '''|| ex.INFO1 || ''', '''|| ex.HUKPERSORGAID_1 || '''
+    , '''|| ex.HUKORGA || ''', '''|| ex.SN || ''', '''|| ex.GIVENNAME || ''', '''|| ex.HUKHIERARCHIE || '''
+    , '''|| ex.HUKMANAGER || ''', '''|| ex.HUKMANAGER_USERID || ''', '''|| ex.MAIL || ''', '''|| ex.HUKSTATUS || '''
+    , '''|| ex.HUKFUNCTION || ''', '''|| ex.HUKKOSTENSTELLE || ''', '''|| ex.HUKDN_LANAD || '''
+    )'
+from IAM_IMPORT.IAM_AD_EXTRACT ex
+where HUKUID_1 in (select value from huk_rezudb_whitelist)
