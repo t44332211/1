@@ -1,0 +1,186 @@
+CREATE OR REPLACE PROCEDURE REZUDB.usp_globalperm_data (
+  p_db_name           IN VARCHAR,
+  p_dttimestamps      IN VARCHAR,
+  p_dtprevtimestamps  IN VARCHAR,
+  p_personrole        IN VARCHAR,
+  p_whitelist         IN NUMBER,
+  p_recordset         OUT SYS_REFCURSOR
+)
+AS
+BEGIN
+OPEN p_recordset FOR
+WITH
+/* =========================
+   🔹 ROLE HIERARCHY (NEW)
+   ========================= */
+role_tree (dbid, collection_timestamp, root_grantee, role_name) AS (
+    SELECT 
+        rp.dbid,
+        rp.collection_timestamp,
+        rp.grantee,
+        rp.granted_role
+    FROM HUK_DBA_ROLE_PRIVS rp
+    WHERE rp.pdb_name = TRIM(p_db_name)
+    UNION ALL
+    SELECT 
+        rt.dbid,
+        rt.collection_timestamp,
+        rt.root_grantee,
+        rp.granted_role
+    FROM role_tree rt
+    JOIN HUK_DBA_ROLE_PRIVS rp
+      ON rp.grantee = rt.role_name
+     AND rp.dbid = rt.dbid
+     AND rp.collection_timestamp = rt.collection_timestamp
+),
+/* =========================
+   🔹 USERS + ROLES
+   ========================= */
+users_roles AS (
+    SELECT  
+        u.dbid,
+        u.pdb_name,
+        u.collection_timestamp,
+        u.username,
+        rp.granted_role AS rolename,
+        u.user_id,
+        'U' AS usertype,
+        u.account_status
+    FROM HUK_DBA_USERS u
+    LEFT JOIN HUK_DBA_ROLE_PRIVS rp
+      ON u.dbid = rp.dbid
+     AND u.collection_timestamp = rp.collection_timestamp
+     AND rp.grantee = u.username
+    WHERE u.pdb_name = TRIM(p_db_name)
+      AND (
+            TO_CHAR(u.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = TRIM(p_dttimestamps)
+         OR TO_CHAR(u.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = TRIM(p_dtprevtimestamps)
+      )
+),
+/* =========================
+   🔹 ALL PRIVILEGES
+   ========================= */
+privs AS (
+    SELECT 
+        p.dbid,
+        p.pdb_name,
+        p.collection_timestamp,
+        p.grantee,
+        p.privilege AS privilege_name
+    FROM HUK_DBA_SYS_PRIVS p
+    WHERE p.pdb_name = TRIM(p_db_name)
+),
+/* =========================
+   🔹 CURRENT GLOBAL (FIXED)
+   ========================= */
+curr_global AS (
+SELECT DISTINCT
+       'Global permission' AS Global,
+       ur.username,
+       ur.rolename,
+       '*' schemaname,
+       DECODE(ur.rolename, NULL, 'U', 'R') usertype,
+       'GRANT' AS permission_state,
+       'CREATE SESSION' AS privilege_name,
+       '*' table_type,
+       '*' table_name,
+       '*' column_name
+FROM users_roles ur
+WHERE ur.pdb_name = TRIM(p_db_name)
+  AND TO_CHAR(ur.collection_timestamp,'dd.mm.yyyy hh24:mi:ss') = TRIM(p_dttimestamps)
+  AND (
+        /* 🔹 DIRECT PRIV */
+        EXISTS (
+            SELECT 1
+            FROM privs p
+            WHERE p.grantee = ur.username
+              AND p.dbid = ur.dbid
+              AND p.collection_timestamp = ur.collection_timestamp
+              AND (
+                   p.privilege_name = 'CREATE SESSION'
+                OR p.privilege_name LIKE '%CONNECT%'
+              )
+        )
+         /* 🔹 VIA ROLES (INCLUDING NESTED) */
+        OR EXISTS (
+            SELECT 1
+            FROM role_tree rt
+            JOIN privs p
+              ON p.grantee = rt.role_name
+             AND p.dbid = rt.dbid
+            AND p.collection_timestamp = rt.collection_timestamp
+            WHERE rt.root_grantee = ur.username
+              AND (
+                   p.privilege_name = 'CREATE SESSION'
+                OR p.privilege_name LIKE '%CONNECT%'
+              )
+        )
+        /* 🔹 ROLE NAME LIKE CONNECT (NESTED) */
+        OR EXISTS (
+            SELECT 1
+            FROM role_tree rt
+            WHERE rt.root_grantee = ur.username
+              AND rt.role_name LIKE '%CONNECT%'
+        )
+      )
+  AND (
+        NVL(p_whitelist,0)=0
+        OR (
+            NOT EXISTS (SELECT 1 FROM HUK_REZUDB_WHITELIST WHERE value = ur.username AND attribute='USER')
+            AND NOT EXISTS (SELECT 1 FROM HUK_REZUDB_WHITELIST WHERE value = ur.rolename AND attribute='ROLE')
+        )
+      )
+),
+/* =========================
+   🔹 PREVIOUS GLOBAL (SAME FIX)
+   ========================= */
+prev_global AS (
+SELECT * FROM curr_global
+WHERE 1=1
+)
+ /* =========================
+   🔹 FINAL OUTPUT
+   ========================= */
+SELECT DISTINCT
+       'Global permission' AS Global,
+       NVL(curr.username, prev.username) ||
+	    CASE
+                 WHEN ad.HUKUID_1 IS NOT NULL THEN
+                      ' (' || ad.givenname || ' ' || ad.sn || ', ' || ad.HUKORGA || ')'
+                 ELSE ''
+            END AS username,
+       NVL(curr.rolename, prev.rolename) AS rolename,
+       NVL(curr.schemaname, prev.schemaname) AS schemaname,
+       NVL(curr.table_type, prev.table_type) AS table_type,
+       CASE NVL(curr.usertype, prev.usertype)
+            WHEN 'U' THEN 'USER'
+            WHEN 'R' THEN 'DATABASE_ROLE'
+       END AS usertype,
+       NVL(curr.permission_state, prev.permission_state) AS AccessType,
+       NVL(curr.privilege_name, prev.privilege_name) AS Privilege,
+       NVL(curr.table_name, prev.table_name) AS Objectname,
+       NVL(curr.column_name, prev.column_name) AS ColumnName,
+       CASE
+           WHEN curr.privilege_name IS NULL AND prev.privilege_name IS NOT NULL THEN 'DEL'
+           WHEN prev.privilege_name IS NULL AND curr.privilege_name IS NOT NULL THEN 'NEW'
+           ELSE 'SAME'
+       END AS sign_compare
+FROM curr_global curr
+FULL OUTER JOIN prev_global prev
+  ON curr.username = prev.username
+ 	    LEFT JOIN (
+		    SELECT HUKUID_1,
+			      MAX(givenname) as givenname,
+				  MAX(sn) as sn,
+				  MAX(HUKORGA) as HUKORGA
+	        FROM IAM_IMPORT.IAM_AD_EXTRACT
+			GROUP BY HUKUID_1
+			) ad 
+		ON UPPER(ad.HUKUID_1) = UPPER(NVL(curr.username, prev.username))
+ ORDER BY username;
+ EXCEPTION
+WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE(SQLERRM);
+ END;
+/
+ 
