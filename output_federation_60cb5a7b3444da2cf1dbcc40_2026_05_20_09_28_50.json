@@ -1,0 +1,232 @@
+{
+  "links": [
+    {
+      "href": "https://cloud.mongodb.com/api/atlas/v2/federationSettings/63f8756cbde48371c63d2493/connectedOrgConfigs/60cb5a7b3444da2cf1dbcc40/roleMappings?pageNum=1&itemsPerPage=100",
+      "rel": "self"
+    }
+  ],
+  "results": [
+    {
+      "externalGroupName": "lan.huk-coburg.de\\GgpAcc-MongoDB-Atlas-myHealth-TS-AB",
+      "id": "642576189d1f0026fff01221",
+      "roleAssignments": [
+        {
+          "groupId": "62f606942265426e81334937",
+          "orgId": null,
+          "role": "GROUP_SEARCH_INDEX_EDITOR"
+        },
+        {
+          "groupId": null,
+          "orgId": "60cb5a7b3444da2cf1dbcc40",
+          "role": "ORG_MEMBER"
+        },
+        {
+          "groupId": "62f606942265426e81334937",
+          "orgId": null,
+          "role": "GROUP_DATA_ACCESS_ADMIN"
+        }
+      ]
+    },
+    {
+      "externalGroupName": "lan.huk-coburg.de\\GgpAcc-MongoDB-Atlas-myHealth-TS-E",
+      "id": "642bd7c8331c753e9b05de72",
+      "roleAssignments": [
+        {
+          "groupId": "62f606942265426e81334937",
+          "orgId": null,
+          "role": "GROUP_SEARCH_INDEX_EDITOR"
+        },
+        {
+          "groupId": null,
+          "orgId": "60cb5a7b3444da2cf1dbcc40",
+          "role": "ORG_MEMBER"
+        },
+        {
+          "groupId": "62f606942265426e81334937",
+          "orgId": null,
+          "role": "GROUP_DATA_ACCESS_ADMIN"
+        }
+      ]
+    },
+    {
+      "externalGroupName": "lan.huk-coburg.de\\GgpAcc-MongoDB-Atlas-Schadenservice-TS-AB",
+      "id": "642bf3d7f0fdc1697d34a1c9",
+      "roleAssignments": [
+        {
+          "groupId": null,
+          "orgId": "60cb5a7b3444da2cf1dbcc40",
+          "role": "ORG_MEMBER"
+        },
+        {
+          "groupId": "63453df1ce579737e9e7c69b",
+          "orgId": null,
+          "role": "GROUP_DATA_ACCESS_ADMIN"
+        },
+        {
+          "groupId": "63453df1ce579737e9e7c69b",
+          "orgId": null,
+          "role": "GROUP_SEARCH_INDEX_EDITOR"
+        }
+      ]
+    },
+    {
+      "externalGroupName": "lan.huk-coburg.de\\GgpAcc-MongoDB-Atlas-Schadenservice-TS-E",
+      "id": "64350577f8d9676ac85b0743",
+      "roleAssignments": [
+        {
+          "groupId": null,
+          "orgId": "60cb5a7b3444da2cf1dbcc40",
+          "role": "ORG_MEMBER"
+        },
+        {
+          "groupId": "63453df1ce579737e9e7c69b",
+          "orgId": null,
+          "role": "GROUP_DATA_ACCESS_ADMIN"
+        },
+        {
+          "groupId": "63453df1ce579737e9e7c69b",
+          "orgId": null,
+          "role": "GROUP_SEARCH_INDEX_EDITOR"
+        }
+      ]
+    },
+    {
+      "externalGroupName": "lan.huk-coburg.de\\GgpAcc-MongoDB-Atlas",
+      "id": "645b3c25579cfc7fa7e5b93a",
+      "roleAssignments": [
+        {
+          "groupId": null,
+          "orgId": "60cb5a7b3444da2cf1dbcc40",
+          "role": "ORG_OWNER"
+        }
+      ]
+    },
+    {
+      "externalGroupName": "lan.huk-coburg.de\\GgpAcc-MongoDB-Atlas-AngebotsspeicherH24-TS-E",
+      "id": "64e5bbf90d4ab56d16a65728",
+      "roleAssignments": [
+        {
+          "groupId": null,
+          "orgId": "60cb5a7b3444da2cf1dbcc40",
+          "role": "ORG_MEMBER"
+        },
+        {
+          "groupId": "64e5bbf24f9f7d5289898592",
+          "orgId": null,
+          "role": "GROUP_SEARCH_INDEX_EDITOR"
+        },
+        {
+          "groupId": "64e5bbf24f9f7d5289898592",
+          "orgId": null,
+          "role": "GROUP_DATA_ACCESS_ADMIN"
+        }
+      ]
+    },
+    {
+      "externalGroupName": "lan.huk-coburg.de\\GgpAcc-MongoDB-Atlas-AngebotsspeicherH24-TS-AB",
+      "id": "64e5bbfaf7c2c24c488ca6b3",
+      "roleAssignments": [
+        {
+          "groupId": null,
+          "orgId": "60cb5a7b3444da2cf1dbcc40",
+          "role": "ORG_MEMBER"
+        },
+        {
+          "groupId": "64e5bbf24f9f7d5289898592",
+          "orgId": null,
+          "role": "GROUP_SEARCH_INDEX_EDITOR"
+        },
+        {
+          "groupId": "64e5bbf24f9f7d5289898592",
+          "orgId": null,
+          "role": "GROUP_DATA_ACCESS_ADMIN"
+        }
+      ]
+    },
+    {
+      "externalGroupName": "lan.huk-coburg.de\\GgpAcc-MongoDB-Atlas-AngebotsspeicherHDE-TS-E",
+      "id": "6551fc5545770a47e29092c0",
+      "roleAssignments": [
+        {
+          "groupId": null,
+          "orgId": "60cb5a7b3444da2cf1dbcc40",
+          "role": "ORG_MEMBER"
+        },
+        {
+          "groupId": "6551fc5145c65862f6759556",
+          "orgId": null,
+          "role": "GROUP_SEARCH_INDEX_EDITOR"
+        },
+        {
+          "groupId": "6551fc5145c65862f6759556",
+          "orgId": null,
+          "role": "GROUP_DATA_ACCESS_ADMIN"
+        }
+      ]
+    },
+    {
+      "externalGroupName": "lan.huk-coburg.de\\GgpAcc-MongoDB-Atlas-AngebotsspeicherHDE-TS-AB",
+      "id": "6551fc55a3b4ff0ffbea7d4c",
+      "roleAssignments": [
+        {
+          "groupId": null,
+          "orgId": "60cb5a7b3444da2cf1dbcc40",
+          "role": "ORG_MEMBER"
+        },
+        {
+          "groupId": "6551fc5145c65862f6759556",
+          "orgId": null,
+          "role": "GROUP_SEARCH_INDEX_EDITOR"
+        },
+        {
+          "groupId": "6551fc5145c65862f6759556",
+          "orgId": null,
+          "role": "GROUP_DATA_ACCESS_ADMIN"
+        }
+      ]
+    },
+    {
+      "externalGroupName": "lan.huk-coburg.de\\GgpAcc-MongoDB-Atlas-AppBackend-TS-AB",
+      "id": "68302517eb9628501fe0575e",
+      "roleAssignments": [
+        {
+          "groupId": null,
+          "orgId": "60cb5a7b3444da2cf1dbcc40",
+          "role": "ORG_MEMBER"
+        },
+        {
+          "groupId": "6830251321737f6942020a96",
+          "orgId": null,
+          "role": "GROUP_DATA_ACCESS_ADMIN"
+        },
+        {
+          "groupId": "6830251321737f6942020a96",
+          "orgId": null,
+          "role": "GROUP_SEARCH_INDEX_EDITOR"
+        }
+      ]
+    },
+    {
+      "externalGroupName": "lan.huk-coburg.de\\GgpAcc-MongoDB-Atlas-AppBackend-TS-E",
+      "id": "68302518d8d7f50078afbe9d",
+      "roleAssignments": [
+        {
+          "groupId": null,
+          "orgId": "60cb5a7b3444da2cf1dbcc40",
+          "role": "ORG_MEMBER"
+        },
+        {
+          "groupId": "6830251321737f6942020a96",
+          "orgId": null,
+          "role": "GROUP_DATA_ACCESS_ADMIN"
+        },
+        {
+          "groupId": "6830251321737f6942020a96",
+          "orgId": null,
+          "role": "GROUP_SEARCH_INDEX_EDITOR"
+        }
+      ]
+    }
+  ],
+  "totalCount": 11
+}

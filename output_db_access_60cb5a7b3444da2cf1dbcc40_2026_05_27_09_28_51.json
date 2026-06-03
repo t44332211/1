@@ -1,0 +1,370 @@
+[
+  {
+    "name": "AWS-DS-AngebotsspeicherH24-28d94af18996f4f9",
+    "created": "2023-08-23T07:57:43Z",
+    "id": "64e5bbf24f9f7d5289898592",
+    "roles": [
+      {
+        "user": "arn:aws:iam::700186658313:role/exec_angebotsspeicher-lambda_test",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "IB15BackupUser",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "backup"
+          }
+        ]
+      },
+      {
+        "user": "DBuserCompass",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "AWS-DS-AngebotsspeicherHDE-77747b426cb8a438",
+    "created": "2023-11-13T10:37:07Z",
+    "id": "6551fc5145c65862f6759556",
+    "roles": [
+      {
+        "user": "arn:aws:iam::700186658313:role/exec_angebotsspeicher-lambda_test",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "IB15BackupUser",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "backup"
+          }
+        ]
+      },
+      {
+        "user": "DBuserCompass",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "AWS-DS-AppBackend",
+    "created": "2025-05-23T07:34:44Z",
+    "id": "6830251321737f6942020a96",
+    "roles": [
+      {
+        "user": "IB15BackupUser",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "backup"
+          }
+        ]
+      },
+      {
+        "user": "DBuserCompass",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::147997164422:role/endpoints-service-de-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::147997164422:role/endpoints-service-pilot-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::147997164422:role/endpoints-service-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "AWS-DS-Schadenservice-0f51d6064ecba4fa",
+    "created": "2022-10-11T09:57:06Z",
+    "id": "63453df1ce579737e9e7c69b",
+    "roles": [
+      {
+        "user": "arn:aws:iam::478272387972:role/damage-report-service-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "DBuserCompass",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::478272387972:role/crash-service-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "IB15BackupUser",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "backup"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::478272387972:role/user-settings-service-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::478272387972:role/thunderstorm-service-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::478272387972:role/beta-features-service-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::478272387972:role/database-update-service-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::478272387972:role/whats-new-service-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::478272387972:role/last-seen-service-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::478272387972:role/aws-reserved/sso.amazonaws.com/eu-central-1/AWSReservedSSO_HUK_DevOps_7790dd4c4c12095b",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::478272387972:role/user-mapping-service-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "AWS-DS-myHealth-c5c150d182f90abe",
+    "created": "2022-08-12T07:51:52Z",
+    "id": "62f606942265426e81334937",
+    "roles": [
+      {
+        "user": "arn:aws:iam::330067410466:role/menu-service-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "IB15BackupUser",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "backup"
+          }
+        ]
+      },
+      {
+        "user": "DBuserCompass",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::330067410466:role/database-update-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::330067410466:role/feedback-service-ts-execution-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::330067410466:role/protocol-service-ts-execution-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::330067410466:role/invoice-service-ts-execution-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::330067410466:role/onboarding-service-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::330067410466:role/contract-service-ts-execution-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::330067410466:role/aws-reserved/sso.amazonaws.com/eu-central-1/AWSReservedSSO_HUK_DevOps_30b66f7805d4dba3",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::330067410466:role/kpi-aggregation-ts-execution-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::330067410466:role/ebox-service-lambda-role-ts",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::330067410466:role/feature-onboarding-service-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      },
+      {
+        "user": "arn:aws:iam::330067410466:role/app-onboarding-service-ts-lambda-role",
+        "roles": [
+          {
+            "databaseName": "admin",
+            "roleName": "readWriteAnyDatabase"
+          }
+        ]
+      }
+    ]
+  }
+]
