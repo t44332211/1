@@ -1,0 +1,48 @@
+SELECT 
+    CAST(t.DateTimeCreatedJson AS smalldatetime) snapshot_timestamp,
+    JSON_VALUE(j.value, '$.id') DBid,
+    JSON_VALUE(j.value, '$.name') DBname,
+    CAST(CAST(JSON_VALUE(j.value, '$.created') AS DATETIMEOFFSET) AS DATETIME) DBcreated,
+
+    CASE
+        WHEN LEFT(parsed.ParsedUser, LEN('arn:aws:iam')) = 'arn:aws:iam'
+        THEN 'lan.huk-coburg.de\' + parsed.ParsedUser
+        ELSE parsed.ParsedUser
+    END AS [user],
+
+    JSON_VALUE(roles.value, '$.databaseName') [rolename],
+    JSON_VALUE(roles.value, '$.roleName') [permission],
+
+    parsed.ParsedRole AS AWSRoleName,
+
+    @IDSQLServerInstance IDSQLServerInstance,
+    @SQLServerInstance SQLServerInstance
+
+INTO #json_mongo_access
+
+FROM [MONGODBudit].[t_ImportJson] t
+CROSS APPLY OPENJSON(t.Json) j
+CROSS APPLY OPENJSON(j.value, '$.roles') roledata
+CROSS APPLY OPENJSON(roledata.value, '$.roles') AS roles
+
+OUTER APPLY STRING_SPLIT(JSON_VALUE(roledata.value, '$.user'), ',') s
+
+OUTER APPLY (
+    SELECT
+        CASE
+            WHEN CHARINDEX(':role/', s.value) > 0
+            THEN LEFT(s.value, CHARINDEX(':role/', s.value) - 1)
+        END AS ParsedUser,
+
+        CASE
+            WHEN CHARINDEX(':role/', s.value) > 0
+            THEN SUBSTRING(
+                    s.value,
+                    CHARINDEX(':role/', s.value) + LEN(':role/'),
+                    LEN(s.value)
+                 )
+        END AS ParsedRole
+) parsed
+
+WHERE t.Id = @Id
+  AND t.FullFileNameJson LIKE '%output_db_access%.json%'
