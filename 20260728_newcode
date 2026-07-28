@@ -1,0 +1,78 @@
+DECLARE @csv NVARCHAR(MAX) = 
+N'Name,Age,City,Country
+John,30,London,UK
+Mary,25,Berlin,Germany
+Alex,40,Kyiv,Ukraine';
+
+-- Step 1: Extract header row
+DECLARE @header NVARCHAR(MAX) =
+    LEFT(@csv, CHARINDEX(CHAR(10), @csv) - 1);
+
+DECLARE @data NVARCHAR(MAX) =
+    SUBSTRING(
+        @csv,
+        CHARINDEX(CHAR(10), @csv) + 1,
+        LEN(@csv)
+    );
+
+-- Убираем CHAR(13), если строки имеют Windows-формат CRLF
+SET @header = REPLACE(@header, CHAR(13), '');
+SET @data = REPLACE(@data, CHAR(13), '');
+
+-- Step 2: Split header into column list
+DECLARE @cols NVARCHAR(MAX) =
+    REPLACE(@header, ',', '],[');
+
+SET @cols = '[' + @cols + ']';
+
+-- Отдельно формируем SELECT-список
+DECLARE @selectColumns NVARCHAR(MAX);
+
+SELECT @selectColumns =
+    STRING_AGG(
+        'x.value(''(col['
+        + CAST(n AS VARCHAR(10))
+        + '])[1]'', ''NVARCHAR(MAX)'') AS '
+        + QUOTENAME(name),
+        ', '
+    )
+FROM (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY ordinal) AS n,
+        TRIM(value) AS name
+    FROM STRING_SPLIT(@header, ',', 1)
+) AS h;
+
+-- Step 3: Build dynamic SQL
+DECLARE @sql NVARCHAR(MAX) = N'
+;WITH Rows AS (
+    SELECT TRIM(value) AS row
+    FROM STRING_SPLIT(@data, CHAR(10))
+    WHERE TRIM(value) <> ''''
+),
+Parsed AS (
+    SELECT ' + @selectColumns + N'
+    FROM Rows
+    CROSS APPLY (
+        SELECT CAST(
+            ''<root><col>''
+            + REPLACE(row, '','', ''</col><col>'')
+            + ''</col></root>''
+            AS XML
+        )
+    ) AS t(xmlData)
+    CROSS APPLY xmlData.nodes(''/root'') AS n(x)
+)
+INSERT INTO YourTable (' + @cols + N')
+SELECT ' + @cols + N'
+FROM Parsed;
+';
+
+-- Проверить итоговый SQL
+PRINT @sql;
+
+-- Step 4: Execute
+EXEC sys.sp_executesql
+    @sql,
+    N'@data NVARCHAR(MAX)',
+    @data = @data;
