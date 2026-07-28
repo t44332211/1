@@ -1,0 +1,41 @@
+DECLARE @csv NVARCHAR(MAX) = 
+N'Name,Age,City,Country
+John,30,London,UK
+Mary,25,Berlin,Germany
+Alex,40,Kyiv,Ukraine';
+ 
+-- Step 1: Extract header row
+DECLARE @header NVARCHAR(MAX) = LEFT(@csv, CHARINDEX(CHAR(10), @csv)-1);
+DECLARE @data NVARCHAR(MAX) = SUBSTRING(@csv, CHARINDEX(CHAR(10), @csv)+1, LEN(@csv));
+ 
+-- Step 2: Split header into column list
+DECLARE @cols NVARCHAR(MAX) = REPLACE(@header, ',', '],[');
+SET @cols = '[' + @cols + ']';
+ 
+-- Step 3: Build dynamic SQL
+DECLARE @sql NVARCHAR(MAX) = '
+;WITH Rows AS (
+    SELECT TRIM(value) AS row
+    FROM STRING_SPLIT(@data, CHAR(10))
+    WHERE value <> ''''
+),
+Parsed AS (
+    SELECT ' + STRING_AGG('x.value(''(col[' + CAST(n AS VARCHAR) + '])[1]'',''NVARCHAR(MAX)'') AS [' + name + ']', ',')
+FROM (
+    SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n,
+           value AS name
+    FROM STRING_SPLIT(@header, ',')
+) AS h
++ '
+    FROM Rows
+    CROSS APPLY (
+        SELECT CAST(''<root><col>'' + REPLACE(row,'','',''</col><col>'') + ''</col></root>'' AS XML)
+    ) AS t(xmlData)
+    CROSS APPLY xmlData.nodes(''/root'') AS n(x)
+)
+INSERT INTO YourTable (' + @cols + ')
+SELECT ' + @cols + ' FROM Parsed;
+';
+ 
+-- Step 4: Execute
+EXEC sp_executesql @sql, N'@data NVARCHAR(MAX)', @data=@data;
