@@ -1,0 +1,91 @@
+USE [IB15_DBVerwaltung_ps733]
+GO
+
+/****** Object:  StoredProcedure [postgresaudit].[CSV_parsing]    Script Date: 29.07.2026 15:03:20 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+--DECLARE @FileTime datetime =  convert(datetime,'2026-07-28 10:31:00',120)
+--EXEC postgresaudit.CSV_parsing 'pg_roles_roh_bool2int.csv',@FileTime, 'rolname,rolsuper,rolinherit,rolcreaterole,rolcreatedb,rolcanlogin,rolreplication,rolconnlimit,rolpassword,rolvaliduntil,rolbypassrls,rolconfig,oid  pg_database_owner,0,1,0,0,0,0,-1,********,,0,,6171  pg_read_all_data,0,1,0,0,0,0,-1,********,,0,,6181  pg_write_all_data,0,1,0,0,0,0,-1,********,,0,,6182  pg_monitor,0,1,0,0,0,0,-1,********,,0,,3373  pg_read_all_settings,0,1,0,0,0,0,-1,********,,0,,3374  pg_read_all_stats,0,1,0,0,0,0,-1,********,,0,,3375  pg_stat_scan_tables,0,1,0,0,0,0,-1,********,,0,,3377  pg_read_server_files,0,1,0,0,0,0,-1,********,,0,,4569  pg_write_server_files,0,1,0,0,0,0,-1,********,,0,,4570  pg_execute_server_program,0,1,0,0,0,0,-1,********,,0,,4571  pg_signal_backend,0,1,0,0,0,0,-1,********,,0,,4200  pg_checkpoint,0,1,0,0,0,0,-1,********,,0,,4544  pg_maintain,0,1,0,0,0,0,-1,********,,0,,6337  pg_use_reserved_connections,0,1,0,0,0,0,-1,********,,0,,4550  pg_create_subscription,0,1,0,0,0,0,-1,********,,0,,6304  dba,1,1,0,0,1,1,-1,********,,0,,16384  dynatrace,0,1,0,0,1,0,-1,********,,0,,16385  postgres,1,1,1,1,1,1,-1,********,,1,,10  replication,0,1,0,0,1,1,-1,********,,0,,16386  barman_role,0,1,0,0,0,0,-1,********,,0,,16387  barman,0,1,0,0,1,0,-1,********,,0,,16388  streaming_barman,0,1,0,0,1,1,-1,********,,0,,16389  pem_user,0,1,0,0,0,0,-1,********,,0,,16741  pem_agent,0,1,0,0,0,0,-1,********,,0,,16743  pem_agent_pool,0,1,0,0,0,0,-1,********,,0,,16744  pem_gssapi,0,1,0,0,0,0,-1,********,,0,,16745  pem_admin,0,1,1,0,0,0,-1,********,,0,,16742  pem_super_admin,0,1,0,0,0,0,-1,********,,0,,21513  pem_config,0,1,0,0,0,0,-1,********,,0,,21515  pem_component,0,1,0,0,0,0,-1,********,,0,,21517  pem_manage_schedule_task,0,1,0,0,0,0,-1,********,,0,,21519  pem_server_service_manager,0,1,0,0,0,0,-1,********,,0,,21521  pem_manage_alert,0,1,0,0,0,0,-1,********,,0,,21524  pem_manage_chart,0,1,0,0,0,0,-1,********,,0,,21526  pem_manage_dashboard,0,1,0,0,0,0,-1,********,,0,,21528  pem_manage_profile,0,1,0,0,0,0,-1,********,,0,,21531  pem_config_alert,0,1,0,0,0,0,-1,********,,0,,21533  pem_manage_probe,0,1,0,0,0,0,-1,********,,0,,21536  pem_config_probe,0,1,0,0,0,0,-1,********,,0,,21538  pem_database_server_registration,0,1,0,0,0,0,-1,********,,0,,21541  pem_manage_efm,0,1,0,0,0,0,-1,********,,0,,21543  pem_manage_patroni,0,1,0,0,0,0,-1,********,,0,,21546  pem_rest_api,0,1,0,0,0,0,-1,********,,0,,21549  pem_comp_webhooks,0,1,0,0,0,0,-1,********,,0,,21551  pem_comp_auto_discovery,0,1,0,0,0,0,-1,********,,0,,21554  pem_comp_log_analysis_expert,0,1,0,0,0,0,-1,********,,0,,21557  pem_comp_capacity_manager,0,1,0,0,0,0,-1,********,,0,,21559  pem_comp_log_manager,0,1,0,0,0,0,-1,********,,0,,21561  pem_comp_audit_manager,0,1,0,0,0,0,-1,********,,0,,21564  pem_comp_tuning_wizard,0,1,0,0,0,0,-1,********,,0,,21567  pem_comp_sqlprofiler,0,1,0,0,0,0,-1,********,,0,,21570  pem_comp_performance_diagnostic,0,1,0,0,0,0,-1,********,,0,,21573  pem_comp_bart,0,1,0,0,0,0,-1,********,,0,,21832  pem_comp_barman,0,1,0,0,0,0,-1,********,,0,,21863  pem_comp_edbr,0,1,0,0,0,0,-1,********,,0,,21907  pem_query_tool,0,1,0,0,0,0,-1,********,,0,,21966  pem_schema_diff_tool,0,1,0,0,0,0,-1,********,,0,,21968  pem_debugger_tool,0,1,0,0,0,0,-1,********,,0,,21970  pem_erd_tool,0,1,0,0,0,0,-1,********,,0,,21972  pem_grant_wizard,0,1,0,0,0,0,-1,********,,0,,21974  pem_backup_tool,0,1,0,0,0,0,-1,********,,0,,21976  pem_restore_tool,0,1,0,0,0,0,-1,********,,0,,21978  pem_import_export_data_tool,0,1,0,0,0,0,-1,********,,0,,21980  pem_search_objects_tool,0,1,0,0,0,0,-1,********,,0,,21982  pem_maintenance_tool,0,1,0,0,0,0,-1,********,,0,,21984  agent1,0,1,0,0,1,0,-1,********,,0,,22013  agent2,0,1,0,0,1,0,-1,********,,0,,24206  test-user,0,1,0,0,1,0,-1,********,,0,,172442  pem_list_all_assets,0,1,0,0,0,0,-1,********,,0,,562768  pem_list_barman,0,1,0,0,0,0,-1,********,,0,,562770  pem_manage_assets,0,1,0,0,0,0,-1,********,,0,,562773  pem_assign_profile,0,1,0,0,0,0,-1,********,,0,,562775  pem_manage_report_templates,0,1,0,0,0,0,-1,********,,0,,562959  pem_view_reports,0,1,0,0,0,0,-1,********,,0,,562962  audit_user,0,1,0,0,1,0,-1,********,,0,,732952','[postgresaudit].[T_Roles]'
+
+CREATE OR ALTER   PROCEDURE [postgresaudit].[CSV_parsing] (
+		@FileName NVARCHAR(2000), 
+		@FileTime datetime,
+		@FileJSON NVARCHAR(max),
+		@TableName NVARCHAR(2000),
+		@MergeCondition NVARCHAR(2000)
+	)
+AS
+BEGIN
+
+SET NOCOUNT ON;
+SET @FileJSON = REPLACE(@FileJSON, CHAR(13),'')
+
+DECLARE @header nvarchar(max) = LEFT(@FileJSON, charindex(char(10),@FileJSON)-1);
+DECLARE @data nvarchar(max) = substring(@FileJSON, charindex(char(10),@FileJSON)+1,len(@FileJSON));
+DECLARE @cols nvarchar(max) = '['+ replace(@header, ',', '],[')+']';
+
+
+DECLARE @selectColumns NVARCHAR(MAX);
+
+SELECT @selectColumns =
+    STRING_AGG(
+        'x.value(''(col['
+        + CAST(n AS VARCHAR(32))
+        + '])[1]'', ''NVARCHAR(MAX)'') AS '
+        + QUOTENAME(name),
+        ', '
+    )
+FROM (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY ordinal) AS n,
+        TRIM(value) AS name
+    FROM STRING_SPLIT(@header, ',', 1)
+) AS h;
+
+-- Step 3: Build dynamic SQL
+DECLARE @sql NVARCHAR(MAX) = N'
+;WITH Rows AS (
+    SELECT TRIM(value) AS row
+    FROM STRING_SPLIT(@data, char(10))
+    WHERE TRIM(value) <> ''''
+),
+Parsed AS (
+    SELECT ' + @selectColumns + N'
+    FROM Rows
+    CROSS APPLY (
+        SELECT CAST(
+            ''<root><col>''
+            + REPLACE(row, '','', ''</col><col>'')
+            + ''</col></root>''
+            AS XML
+        )
+    ) AS t(xmlData)
+    CROSS APPLY xmlData.nodes(''/root'') AS n(x)
+)
+MERGE INTO ' + @TableName + N' as t
+USING (
+SELECT @FileTime dtSnapshot, ' + @cols + N'
+FROM Parsed) as s 
+ON (t.dtSnapshot=s.dtSnapshot and ' + @MergeCondition + N')
+WHEN NOT MATCHED by target THEN
+INSERT (dtSnapshot, '+ @cols + N') 
+VALUES (dtSnapshot, '+ @cols + N');
+';
+
+
+PRINT @sql;
+
+-- Step 4: Execute
+EXEC sys.sp_executesql
+    @sql,
+    N'@data NVARCHAR(MAX), @FileTime datetime',
+    @data = @data,  @FileTime= @FileTime;
+
+END
+GO
+
+
