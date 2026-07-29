@@ -1,0 +1,83 @@
+USE [IB15_DBVerwaltung_ps733]
+GO
+
+/****** Object:  StoredProcedure exec [postgresauditreport].[JSON_Process]    Script Date: 29.07.2026 14:36:34 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+ --EXEC [postgresauditreport].[JSON_Process]
+ CREATE OR ALTER   procedure [postgresauditreport].[JSON_Process]
+ AS
+ BEGIN
+	 SET NOCOUNT ON
+	 DECLARE @Id bigint, @FullFileName NVARCHAR(2000), @FileName NVARCHAR(2000), @FileTime datetime, @FileJSON NVARCHAR(max), @LogID int, @TableName NVARCHAR(2000), @MergeCondition NVARCHAR(MAX)
+	 DECLARE @Status int = 0
+	 declare @tt as table (Id bigint)
+
+	 DECLARE cs CURSOR LOCAL FAST_FORWARD READ_ONLY FOR
+	 SELECT f.[Id]
+		  --,f.[DateTime]
+		  ,f.[FullFileName]
+		  ,convert(datetime2(0),convert(varchar(16),f.[DateTimeCreate],120)+':00',120)	 [DateTimeCreate]
+		  ,f.[Content]
+		  --,f.[Status]
+		  ,RIGHT(f.[FullFileName],CHARINDEX('\',REVERSE(f.FullFileName))-1) [FileName]
+		  --,d.StagingTable
+		  ,d.TableName
+		  ,d.MergeCondition
+	FROM [postgresaudit].[t_ImportFile] f
+	INNER JOIN [postgresaudit].DIM_TABLE_MAPPING d 
+	   ON d.[FileName]=RIGHT(f.[FullFileName],CHARINDEX('\',REVERSE(f.FullFileName))-1) --[FileName]
+	WHERE isnull(Status,0)=0
+	ORDER BY d.orderby
+
+	OPEN cs
+	FETCH NEXT FROM cs INTO @Id, @FullFileName, @FileTime, @FileJSON, @FileName, @TableName, @MergeCondition
+
+	WHILE @@FETCH_STATUS=0
+	BEGIN
+		BEGIN TRY
+	
+		insert into [json].JsonImportLog ( IDImportJson, FullFileNameJson, DateTimeCreateJson, DateStart, Status) 
+		output inserted.ID into @tt(Id)
+		select @Id, @FullFileName, @FileTime, getdate(), @Status
+		SELECT @LogID = ID from @tt
+
+		EXEC postgresaudit.CSV_parsing @FileName, @FileTime, @FileJSON, @TableName, @MergeCondition
+	
+		update [postgresaudit].[t_ImportFile]
+		  set status=1
+		where Id=@Id
+
+		update [json].JsonImportLog
+			set status=1, DateFinish=getdate()
+		where Id=@LogID
+
+		END TRY
+		BEGIN CATCH
+				 --todo log
+			IF @@TRANCOUNT > 0	ROLLBACK
+				--to log 
+			update [json].JsonImportLog 
+				set Status=2,
+				DateFinish=getdate(),
+				[Message] = CONCAT(ERROR_NUMBER(),': ',ERROR_MESSAGE()) 
+			where Id=@LogID
+
+		END CATCH
+
+		FETCH NEXT FROM cs INTO @Id, @FullFileName, @FileTime, @FileJSON, @FileName, @TableName, @MergeCondition
+	END
+
+	CLOSE cs
+	DEALLOCATE cs
+END
+	
+
+
+GO
+
+
