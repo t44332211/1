@@ -1,0 +1,87 @@
+USE [IB15_DBVerwaltung_ps733]
+GO
+/****** Object:  StoredProcedure [postgresaudit].[CSV_parsing]    Script Date: 29.07.2026 11:15:32 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER   PROCEDURE [postgresaudit].[CSV_parsing] (
+		@FileName NVARCHAR(2000), 
+		@FileTime datetime,
+		@FileJSON NVARCHAR(max),
+		@TableName NVARCHAR(2000)
+	)
+AS
+BEGIN
+SET NOCOUNT ON;
+
+DECLARE @symbol varchar(8) = N'  '
+DECLARE @pos int = charindex(char(32),@FileJSON)
+
+IF @pos <= 0 
+BEGIN
+	SET @pos  = charindex(char(13),@FileJSON)
+	SET @symbol = N'
+'
+END
+
+DECLARE @header nvarchar(max) = LEFT(@FileJSON, charindex(@symbol,@FileJSON)-1);
+print @header
+DECLARE @data nvarchar(max) = substring(@FileJSON, charindex(@symbol,@FileJSON)+1,len(@FileJSON));
+DECLARE @cols nvarchar(max) = '['+ replace(@header, ',', '],[')+']';
+DECLARE @selectColumns NVARCHAR(MAX);
+
+SELECT @selectColumns =
+    STRING_AGG(
+        'x.value(''(col['
+        + CAST(n AS VARCHAR(64))
+        + '])[1]'', ''NVARCHAR(MAX)'') AS '
+        + QUOTENAME(name),
+        ', '
+    )
+FROM (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY ordinal) AS n,
+        TRIM(value) AS name
+    FROM STRING_SPLIT(@header, ',', 1)
+) AS h;
+
+-- Step 3: Build dynamic SQL
+DECLARE @sql NVARCHAR(MAX) = N'
+;WITH Rows AS (
+    SELECT TRIM(value) AS row
+    FROM STRING_SPLIT(@data, @symbol)
+    WHERE TRIM(value) <> ''''
+),
+Parsed AS (
+    SELECT ' + @selectColumns + N'
+    FROM Rows
+    CROSS APPLY (
+        SELECT CAST(
+            ''<root><col>''
+            + REPLACE(row, '','', ''</col><col>'')
+            + ''</col></root>''
+            AS XML
+        )
+    ) AS t(xmlData)
+    CROSS APPLY xmlData.nodes(''/root'') AS n(x)
+)
+MERGE INTO ' + @TableName + N' as t
+USING (
+SELECT @FileTime dtSnapshot, ' + @cols + N'
+FROM Parsed) as s 
+ON (t.dtSnapshot=s.dtSnapshot and t.oid=s.oid)
+WHEN NOT MATCHED by target THEN
+INSERT (dtSnapshot, '+ @cols + N') 
+VALUES (dtSnapshot, '+ @cols + N');
+';
+
+--PRINT @sql;
+
+-- Step 4: Execute
+EXEC sys.sp_executesql
+    @sql,
+    N'@data NVARCHAR(MAX), @FileTime datetime, @symbol varchar(8)',
+    @data = @data,  @FileTime= @FileTime, @symbol=@symbol;
+
+END
