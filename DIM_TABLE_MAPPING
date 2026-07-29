@@ -1,0 +1,25 @@
+USE [IB15_DBVerwaltung_ps733]
+GO
+
+--select * from  [postgresaudit].DIM_TABLE_MAPPING
+DROP TABLE IF EXISTS [postgresaudit].DIM_TABLE_MAPPING 
+GO
+
+CREATE TABLE [postgresaudit].DIM_TABLE_MAPPING (
+	Id			 bigint NOT NULL IDENTITY(1,1)
+		constraint PK_DIM_TABLE_MAPPING PRIMARY KEY,
+	[FileName]	 nvarchar(255) NOT NULL,
+	StagingTable nvarchar(255) NOT NULL,
+	TableName	 nvarchar(255) NOT NULL,
+	MergeCondition  nvarchar(255) NOT NULL,
+	orderby		 int,
+	constraint UNQ_DIM_TABLE_MAPPING UNIQUE ([FileName])
+)
+GO
+INSERT INTO  [postgresaudit].DIM_TABLE_MAPPING ([FileName], StagingTable, TableName, MergeCondition, orderby) VALUES 
+('no1_role_memberships.csv', '[postgresaudit].[no1_role_memberships]', '[postgresaudit].[T_RoleMemberships]', 't.[member]=s.[member] and t.[granted_role]=s.[granted_role]', 4), 
+('no2_role_privilege_per_db_bool2int.csv', '[postgresaudit].[no2_role_priviledge_per_db]', '[postgresaudit].[T_RolePriviledgesPerDB]', 't.[role]=s.[role] and t.[database]=s.[database]', 5), 
+('pg_database_roh_bool2int.csv', '[postgresaudit].[pg_database_roh]', '[postgresaudit].[T_Databases]', 't.[oid]=s.[oid]', 1), 
+('pg_roles_roh_bool2int.csv', '[postgresaudit].[pg_roles_roh]', '[postgresaudit].[T_Roles]', 't.[oid]=s.[oid]', 2), 
+('pg_auth_members_roh_bool2int.csv', '[postgresaudit].[pg_auth_members_roh]', '[postgresaudit].[T_AuthMembers]', 't.[oid]=s.[oid]', 3)
+--, ('pg_datatypes.csv','')  --do not use
