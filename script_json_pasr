@@ -1,0 +1,553 @@
+--USE [IB15_DBVerwaltung_ps733]
+--GO
+--/****** Object:  StoredProcedure [elasticauditreport].[JSON_parsing]    Script Date: 10.09.2026 09:46:33 ******/
+--SET ANSI_NULLS ON
+--GO
+--SET QUOTED_IDENTIFIER ON
+--GO
+
+--CREATE OR ALTER   PROCEDURE [elasticauditreport].[JSON_parsing_v3]
+--as
+
+--BEGIN
+--SET NOCOUNT ON
+
+DECLARE @SQLServerInstance nvarchar(255) = 'UNKNOWN'
+DECLARE @IDSQLServerInstance bigint
+
+SELECT @IDSQLServerInstance = IDSQLServerInstance
+FROM [elasticaudit].[T_SQLServerInstances]
+where [strInstanceName]=@SQLServerInstance
+
+IF @IDSQLServerInstance is null
+BEGIN
+	SELECT @IDSQLServerInstance=ISNULL(MAX(IDSQLServerInstance),-1)+1
+	FROM [elasticaudit].[T_SQLServerInstances]
+
+	INSERT INTO [elasticaudit].[T_SQLServerInstances] ([IDSQLServerInstance],[strInstanceName])
+	VALUES (@IDSQLServerInstance,@SQLServerInstance)
+END
+
+DROP TABLE IF EXISTS #json_elastic;
+SELECT
+	DISTINCT 
+	'U' AS TYPEUSER,
+	JSON_VALUE(t.Json, '$.date') AS snapshot_timestamp,
+	JSON_VALUE(deployment.value, '$.id') AS DBid,
+	JSON_VALUE(deployment.value, '$.name') AS DBname,
+	t.DateTimeCreateJson  AS DBcreated,
+	JSON_VALUE(userBlock.value, '$.name') AS [user], 
+	JSON_VALUE(rrole.value, '$.rolename') AS rolename,
+	clustergrants.value AS [object_name],
+	index_name.value AS index_name,
+	index_privilege.value AS index_privilege,
+	JSON_VALUE(index_grant.value, '$.allow_restricted_indices') AS allow_restricted_indices,
+	 @IDSQLServerInstance		IDSQLServerInstance,
+	 @SQLServerInstance		SQLServerInstance
+into  #json_elastic
+--FROM [ELASTICAUDIT].JsonImportStaging AS t
+from [elasticaudit].[t_ImportJson] t
+CROSS APPLY OPENJSON(t.Json, '$.deployments') AS deployment
+CROSS APPLY OPENJSON(deployment.value, '$.users') AS userBlock
+CROSS APPLY OPENJSON(userBlock.value, '$.roles') AS rrole
+CROSS APPLY OPENJSON(rrole.value, '$."cluster-grants"') AS clustergrants
+CROSS APPLY OPENJSON(rrole.value, '$."index-grants"') AS index_grant
+CROSS APPLY OPENJSON(JSON_QUERY(index_grant.value, '$.names')) AS index_name
+CROSS APPLY OPENJSON(JSON_QUERY(index_grant.value, '$.privileges')) AS index_privilege
+--WHERE FullFileNameJson like '%deployments_final_validated.json%';
+WHERE FullFileNameJson not like '%db_access.json%' and FullFileNameJson not like '%federation.json%';
+--DECLARE @SQLServerInstance nvarchar(255) = 'UNKNOWN'
+--DECLARE @IDSQLServerInstance bigint = 0
+
+--INSERT INTO [elasticaudit].[T_SQLServerInstances] ([strInstanceName])
+--SELECT @SQLServerInstance [strInstanceName]
+--WHERE NOT EXISTS (SELECT 1 FROM [elasticaudit].[T_SQLServerInstances]  where [strInstanceName]=@SQLServerInstance)
+
+
+INSERT INTO #json_elastic
+SELECT
+	DISTINCT 
+	'G' AS TYPEUSER,
+	JSON_VALUE(t.Json, '$.date') AS snapshot_timestamp,
+	JSON_VALUE(deployment.value, '$.id') AS DBid,
+	JSON_VALUE(deployment.value, '$.name') AS DBname,
+	t.DateTimeCreateJson AS DBcreated,
+	JSON_VALUE(userBlock.value, '$.name') AS [user], 
+	JSON_VALUE(rrole.value, '$.rolename') AS rolename,
+	clustergrants.value AS [object_name],
+	index_name.value AS index_name,
+	index_privilege.value AS index_privilege,
+	JSON_VALUE(index_grant.value, '$.allow_restricted_indices') AS allow_restricted_indices,
+	@IDSQLServerInstance		IDSQLServerInstance,
+	@SQLServerInstance		SQLServerInstance
+
+--FROM [ELASTICAUDIT].JsonImportStaging AS t
+from [elasticaudit].[t_ImportJson] t
+CROSS APPLY OPENJSON(t.Json, '$.deployments') AS deployment
+CROSS APPLY OPENJSON(deployment.value, '$.mappings') AS userBlock
+CROSS APPLY OPENJSON(userBlock.value, '$.roles') AS rrole
+CROSS APPLY OPENJSON(rrole.value, '$."cluster-grants"') AS clustergrants
+CROSS APPLY OPENJSON(rrole.value, '$."index-grants"') AS index_grant
+CROSS APPLY OPENJSON(JSON_QUERY(index_grant.value, '$.names')) AS index_name
+CROSS APPLY OPENJSON(JSON_QUERY(index_grant.value, '$.privileges')) AS index_privilege
+--WHERE FullFileNameJson like '%deployments_final_validated.json%';
+WHERE FullFileNameJson not like '%db_access.json%' and FullFileNameJson not like '%federation.json%';
+
+--select * from #json_elastic where [index_name] like '%.alert%'
+--select * from #json_elastic
+ --delete from  [ELASTIC].[T_SQLDatabases] 
+MERGE INTO [ELASTIC].[T_SQLDatabases] as target
+USING (
+		select distinct d.IDSQLServerInstance, 
+		d.DBid, 
+		d.DBname, 
+		1 [isOnline]
+		from #json_elastic d		
+) as source
+ON target.[IDSQLServerInstance]=source.IDSQLServerInstance AND target.dbid=source.dbid
+WHEN MATCHED THEN UPDATE 
+	SET target.[strDatabaseName]	= source.DBname
+	   ,target.[isOnline]			= source.[isOnline]
+WHEN NOT MATCHED BY TARGET THEN INSERT 
+	(IDSQLServerInstance, [dbid], [strDatabaseName], [dtCreateDate], [isOnline])
+	values
+	(source.IDSQLServerInstance, source.dbid, source.DBname, NULL, source.[isOnline])
+WHEN NOT MATCHED BY SOURCE 
+	THEN UPDATE SET target.[isOnline] = 0
+;
+
+
+--DELETE FROM [ELASTIC].[T_SQLDatabasePrincipals]
+
+MERGE INTO [ELASTIC].[T_SQLDatabasePrincipals] as target
+USING (
+	select distinct 
+		d.IDSQLServerInstance IDSQLServerInstance, 
+		db.IDSQLDatabase,
+		d.[user] AS [name], 
+		'G' AS type, 
+		'WINDOWS_GROUP' AS type_desc,
+		0 [is_fixed_role]
+	from #json_elastic d
+	inner join  [ELASTIC].[T_SQLDatabases] db
+	  on db.IDSQLServerInstance=d.IDSQLServerInstance
+	     and db.dbid=d.dbid
+	WHERE TYPEUSER = 'G'
+    UNION
+	select distinct 
+		d.IDSQLServerInstance IDSQLServerInstance, 
+		db.IDSQLDatabase,
+		d.[user] AS [name], 
+		'U' AS type, 
+		'WINDOWS_USER' AS type_desc,
+		0 [is_fixed_role]
+	from #json_elastic d
+	inner join  [ELASTIC].[T_SQLDatabases] db
+	  on db.IDSQLServerInstance=d.IDSQLServerInstance
+	     and db.dbid=d.dbid
+	WHERE TYPEUSER = 'U'
+	UNION
+	select distinct 
+		d.IDSQLServerInstance IDSQLServerInstance, 
+		db.IDSQLDatabase, 
+		d.[rolename] AS [name], 
+		'R' AS type, 
+		'DATABASE_ROLE' AS type_desc,
+		1 [is_fixed_role]
+	from #json_elastic d
+	inner join  [ELASTIC].[T_SQLDatabases] db
+	  on db.IDSQLServerInstance=d.IDSQLServerInstance
+	     and db.dbid=d.dbid
+) as source
+ON target.IDSQLServerInstance=source.IDSQLServerInstance and target.IDSQLDatabase=source.IDSQLDatabase
+   and  target.type=source.type	and target.name=source.name
+WHEN MATCHED THEN UPDATE 
+	SET target.[is_fixed_role]	= source.[is_fixed_role]
+	, target.[type_desc] = source.[type_desc]
+WHEN NOT MATCHED BY TARGET THEN INSERT 
+	(IDSQLServerInstance, [IDSQLDatabase], [name], [type], [type_desc], [is_fixed_role])
+	values
+	(source.IDSQLServerInstance, source.IDSQLDatabase, source.[name], source.[type], source.[type_desc], [is_fixed_role])
+;
+
+
+--DELETE FROM [ELASTICAUDIT].[T_SQLDatabases]
+
+
+MERGE INTO [ELASTICAUDIT].[T_SQLDatabases] as target
+using (
+select distinct 
+		d.IDSQLServerInstance, 
+		d.snapshot_timestamp [dtSnapshot], 
+		db.IDSQLDatabase, 
+		d.DBid, 
+		d.DBname,  
+		1 [isOnline]
+from #json_elastic d
+inner join  [ELASTIC].[T_SQLDatabases] db
+	  on db.IDSQLServerInstance=d.IDSQLServerInstance
+	     and db.dbid=d.dbid
+) as source
+ON target.[dtSnapshot]=source.[dtSnapshot]
+	AND target.[IDSQLServerInstance]=source.IDSQLServerInstance 
+	AND target.[IDSQLDatabase]=source.[IDSQLDatabase]
+WHEN MATCHED THEN UPDATE 
+	SET target.dbid					= source.dbid 
+ 	   ,target.[strDatabaseName]	= source.DBname
+	   ,target.[isOnline]			= source.[isOnline]
+WHEN NOT MATCHED BY TARGET THEN INSERT 
+	(IDSQLServerInstance, [dtSnapshot], [IDSQLDatabase], [dbid], [strDatabaseName], [dtCreateDate], [isOnline])
+	values
+	(source.IDSQLServerInstance, source.[dtSnapshot], source.[IDSQLDatabase], source.dbid, source.DBname, NULL, source.[isOnline])
+WHEN NOT MATCHED BY SOURCE 
+	THEN UPDATE SET target.[isOnline] = 0
+;
+
+--DELETE FROM [ELASTICAUDIT].[T_DBPrincipals]
+
+MERGE INTO [ELASTICAUDIT].[T_DBPrincipals] as target
+USING (
+	select distinct  
+		d.snapshot_timestamp [dtSnapshot], 
+		db.IDSQLDatabase,
+		p.principal_id, 
+		d.[user] AS [name], 
+		'G' AS type, 
+		'WINDOWS_GROUP' AS type_desc,
+		0 [is_fixed_role]
+	from #json_elastic d
+	inner join  [ELASTIC].[T_SQLDatabases] db
+	  on db.IDSQLServerInstance=d.IDSQLServerInstance and db.dbid=d.dbid
+	inner join [ELASTIC].[T_SQLDatabasePrincipals] p
+	  on p.[IDSQLServerInstance]=db.IDSQLServerInstance and  p.IDSQLDatabase=db.IDSQLDatabase
+	     and p.name=d.[user] and p.[type]='G' 
+	UNION
+	select distinct  
+		d.snapshot_timestamp [dtSnapshot], 
+		db.IDSQLDatabase,
+		p.principal_id, 
+		d.[user] AS [name], 
+		'U' AS type, 
+		'WINDOWS_USER' AS type_desc,
+		0 [is_fixed_role]
+	from #json_elastic d
+	inner join  [ELASTIC].[T_SQLDatabases] db
+	  on db.IDSQLServerInstance=d.IDSQLServerInstance and db.dbid=d.dbid
+	inner join [ELASTIC].[T_SQLDatabasePrincipals] p
+	  on p.[IDSQLServerInstance]=db.IDSQLServerInstance and  p.IDSQLDatabase=db.IDSQLDatabase
+	     and p.name=d.[user] and p.[type]='U' 
+	UNION
+	select distinct 
+		d.snapshot_timestamp [dtSnapshot], 
+		db.IDSQLDatabase, 
+		p.principal_id, 
+		d.[rolename] AS [name], 
+		'R' AS type, 
+		'DATABASE_ROLE' AS type_desc,
+		1 [is_fixed_role]
+	from #json_elastic d
+	inner join  [ELASTIC].[T_SQLDatabases] db
+	  on db.IDSQLServerInstance=d.IDSQLServerInstance  and db.dbid=d.dbid
+	inner join [ELASTIC].[T_SQLDatabasePrincipals] p
+	  on p.[IDSQLServerInstance]=db.IDSQLServerInstance and  p.IDSQLDatabase=db.IDSQLDatabase
+	     and p.name=d.[rolename] and p.[type]='R'
+) as source
+ON target.[dtSnapshot]=source.[dtSnapshot] 
+	AND target.idDB=source.IDSQLDatabase
+	AND  target.type=source.type	
+	AND target.principal_id=source.principal_id
+WHEN MATCHED THEN UPDATE 
+	SET  target.[name]			= source.[name]
+		,target.[is_fixed_role]	= source.[is_fixed_role]
+		,target.[type_desc]		= source.[type_desc]
+WHEN NOT MATCHED BY TARGET THEN INSERT 
+	([dtSnapshot], [idDB], principal_id, [name], [type], [type_desc], [is_fixed_role])
+	values
+	(source.[dtSnapshot], source.IDSQLDatabase, source.principal_id, source.[name], source.[type], source.[type_desc], [is_fixed_role])
+;
+
+
+--DROP TABLE IF EXISTS #json_elastic_for_RoleMembers;
+
+--SELECT DISTINCT snapshot_timestamp, DBid, DBname, DBcreated, [user], rolename, IDSQLServerInstance, SQLServerInstance
+--INTO #json_elastic_for_RoleMembers
+--from #json_elastic d
+--WHERE [user] = 'deployment_admins'
+
+--DELETE FROM [ELASTICAUDIT].[T_DBRoleMembers]
+
+MERGE INTO [ELASTICAUDIT].[T_DBRoleMembers] as target
+USING (
+	select distinct 
+		d.dbname,
+		d.[user], 
+		d.snapshot_timestamp  [dtSnapshot], 
+		db.IDSQLDatabase idDB, 
+		p.principal_id [role_principal_id], 
+		u.principal_id [member_principal_id]
+	from #json_elastic d 
+	inner join [ELASTIC].[T_SQLDatabases] db
+		on db.IDSQLServerInstance=d.IDSQLServerInstance  and db.dbid=d.dbid
+	inner join [ELASTIC].[T_SQLDatabasePrincipals] u
+		on u.[IDSQLServerInstance]=db.IDSQLServerInstance and  u.IDSQLDatabase=db.IDSQLDatabase
+			and u.name=d.[user] and u.[type]='U' 
+	inner join [ELASTIC].[T_SQLDatabasePrincipals] p
+		on p.[IDSQLServerInstance]=db.IDSQLServerInstance and  p.IDSQLDatabase=db.IDSQLDatabase
+			and p.name=d.[rolename] and p.[type]='R' 
+
+) as source
+ON target.[dtSnapshot]=source.[dtSnapshot] 
+	AND target.idDB=source.idDB
+	AND  target.[role_principal_id]=source.[role_principal_id] 
+	AND target.[member_principal_id]=source.[member_principal_id]
+WHEN NOT MATCHED BY TARGET THEN INSERT 
+	([dtSnapshot], [idDB], [role_principal_id], [member_principal_id])
+	values
+	(source.[dtSnapshot], source.idDB, source.[role_principal_id], source.[member_principal_id])
+;
+
+--DELETE FROM [ELASTICAUDIT].[T_DBRoleMembers]
+
+MERGE INTO [ELASTICAUDIT].[T_DBRoleMembers] as target
+USING (
+	select distinct 
+		d.dbname,
+		d.[user], 
+		d.snapshot_timestamp  [dtSnapshot], 
+		db.IDSQLDatabase idDB, 
+		p.principal_id [role_principal_id], 
+		u.principal_id [member_principal_id]
+	from #json_elastic d 
+	inner join [ELASTIC].[T_SQLDatabases] db
+		on db.IDSQLServerInstance=d.IDSQLServerInstance  and db.dbid=d.dbid
+	inner join [ELASTIC].[T_SQLDatabasePrincipals] u
+		on u.[IDSQLServerInstance]=db.IDSQLServerInstance and  u.IDSQLDatabase=db.IDSQLDatabase
+			and u.name=d.[user] and u.[type]='G' 
+	inner join [ELASTIC].[T_SQLDatabasePrincipals] p
+		on p.[IDSQLServerInstance]=db.IDSQLServerInstance and  p.IDSQLDatabase=db.IDSQLDatabase
+			and p.name=d.[rolename] and p.[type]='R' 
+
+) as source
+ON target.[dtSnapshot]=source.[dtSnapshot] 
+	AND target.idDB=source.idDB
+	AND  target.[role_principal_id]=source.[role_principal_id] 
+	AND target.[member_principal_id]=source.[member_principal_id]
+WHEN NOT MATCHED BY TARGET THEN INSERT 
+	([dtSnapshot], [idDB], [role_principal_id], [member_principal_id])
+	values
+	(source.[dtSnapshot], source.idDB, source.[role_principal_id], source.[member_principal_id])
+;
+
+
+--DELETE FROM [elastic].[T_SQLDatabaseObjects]
+--select * from #json_elastic where dbname='Collibra-Monitoring_PR' and [user] ='collibra_monitoring'
+
+MERGE INTO [elastic].[T_SQLDatabaseObjects] AS target
+USING (
+	select distinct
+		db.IDSQLDatabase,
+		d.[object_name],
+		'CL' AS [type],
+		'cluster' AS [type_desc],
+		d.Dbcreated
+	from #json_elastic d 
+	inner join  [ELASTIC].[T_SQLDatabases] db
+	  on db.IDSQLServerInstance=d.IDSQLServerInstance
+	     and db.dbid=d.dbid
+	WHERE  d.[object_name] like 'cluster:%'
+	UNION 
+	select distinct
+		db.IDSQLDatabase, 
+		d.index_name [object_name],
+		'X' AS [type],
+		'index' AS [type_desc],
+		d.Dbcreated
+	from #json_elastic d 
+	inner join  [ELASTIC].[T_SQLDatabases] db
+	  on db.IDSQLServerInstance=d.IDSQLServerInstance
+	     and db.dbid=d.dbid
+) as source
+ON target.[object_name]=source.[object_name] 
+	AND target.IDSQLDatabase=source.IDSQLDatabase 
+	AND target.type=source.type
+WHEN MATCHED THEN UPDATE 
+	SET target.[create_date]	=source.Dbcreated
+	, target.[type_desc]		=source.[type_desc]
+WHEN NOT MATCHED BY TARGET THEN INSERT 
+	(IDSQLDatabase, [object_name],[type],[type_desc],[create_date])
+	values
+	(source.IDSQLDatabase, source.[object_name],source.[type],source.[type_desc],source.Dbcreated)
+	;
+
+--DELETE FROM [ELASTICAUDIT].[T_DBObjects]
+
+MERGE INTO [ELASTICAUDIT].[T_DBObjects] as target
+USING (
+  	select distinct
+		d.snapshot_timestamp, 
+		db.IDSQLDatabase, 
+		d.[object_name] [object_name],
+		dbobj.[object_id],
+		dbobj.[type],
+		dbobj.[type_desc],
+		d.Dbcreated
+	from #json_elastic d
+	inner join  [ELASTIC].[T_SQLDatabases] db
+	  on db.IDSQLServerInstance=d.IDSQLServerInstance
+	     and db.dbid=d.dbid
+	inner join  [elastic].[T_SQLDatabaseObjects] dbobj
+		  on dbobj.IDSQLDatabase=db.IDSQLDatabase
+		  and dbobj.[object_name]=d.[object_name]
+     WHERE  d.[object_name] NOT IN ('all')
+--and d.DBname='Collibra-Monitoring_PR'
+	UNION
+  	select distinct
+		d.snapshot_timestamp,
+		db.IDSQLDatabase,
+		d.[index_name] [object_name],
+		dbobj.[object_id],
+		dbobj.[type], 
+		dbobj.[type_desc], 
+		d.Dbcreated
+    from #json_elastic d
+	inner join  [ELASTIC].[T_SQLDatabases] db
+	  on db.IDSQLServerInstance=d.IDSQLServerInstance
+	     and db.dbid=d.dbid
+	inner join  [elastic].[T_SQLDatabaseObjects] dbobj
+		  on dbobj.IDSQLDatabase=db.IDSQLDatabase
+		  and dbobj.[object_name]=d.[index_name]  
+	WHERE  d.[index_name] NOT IN ('all')
+--and d.DBname='Collibra-Monitoring_PR'
+) as source
+ON target.[dtSnapshot]=source.snapshot_timestamp 
+	AND target.[object_id]	=source.[object_id] 
+	AND target.idDB			=source.IDSQLDatabase 
+	AND target.type			=source.type
+WHEN MATCHED THEN UPDATE 
+	SET target.[create_date]=source.Dbcreated
+	,target.[name]	=source.[object_name]
+	,target.[type_desc]		=source.[type_desc]
+WHEN NOT MATCHED BY TARGET THEN INSERT 
+	([dtSnapshot],[idDB],[name],[object_id],[type],[type_desc],[create_date])	     
+	values
+	(source.snapshot_timestamp, source.IDSQLDatabase, source.[object_name], source.[object_id], source.[type], source.[type_desc], source.Dbcreated)
+	;
+
+--DELETE FROM [ELASTICAUDIT].[T_DBPermissions]
+
+MERGE INTO [ELASTICAUDIT].[T_DBPermissions] as target
+USING (
+	select distinct 
+		d.snapshot_timestamp  [dtSnapshot], 
+		db.IDSQLDatabase idDB, 
+		0 [major_id],
+		0 class, 
+		'DATABASE' [class_desc],
+		u.principal_id		[grantee_principal_id],
+		'CO  ' [type], 
+		'CONNECT' [permission_name],		
+		'G' [state], 
+		'GRANT' [state_desc]
+    from #json_elastic d
+	inner join [ELASTIC].[T_SQLDatabases] db
+		on db.IDSQLServerInstance=d.IDSQLServerInstance  and db.dbid=d.dbid
+	inner join [ELASTIC].[T_SQLDatabasePrincipals] u
+		on u.[IDSQLServerInstance]=db.IDSQLServerInstance and  u.IDSQLDatabase=db.IDSQLDatabase
+			and u.name=d.[user] and u.[type] in ('U', 'G')
+	UNION
+	select distinct 
+		d.snapshot_timestamp  [dtSnapshot], 
+		db.IDSQLDatabase idDB, 
+		isnull(o.[object_id],0)  [major_id],
+		1 class, 
+		'OBJECT_OR_COLUMN' [class_desc],
+		p.principal_id		[grantee_principal_id],
+		(case when d.[object_name] like '%CREATE%' then 'CR  ' 
+			  when d.[object_name] like '%DELETE%' then 'DL  ' 
+		else 'SL  ' end)	[type], 
+		d.[object_name] [permission_name],
+		'G' [state], 
+		'GRANT' [state_desc]
+ from #json_elastic d 
+	inner join [ELASTIC].[T_SQLDatabases] db
+		on db.IDSQLServerInstance=d.IDSQLServerInstance  
+			and db.dbid=d.dbid
+	inner join [ELASTIC].[T_SQLDatabasePrincipals] p
+		on p.[IDSQLServerInstance]=db.IDSQLServerInstance 
+			and  p.IDSQLDatabase=db.IDSQLDatabase
+			and p.name=d.[rolename] 
+			and p.[type] in ('R','G')
+	outer apply  (select distinct d.object_name  cluster_name
+				  from #json_elastic d 
+					inner join [ELASTIC].[T_SQLDatabases] db
+						on db.IDSQLServerInstance=d.IDSQLServerInstance  
+							and db.dbid=d.dbid
+					inner join [ELASTIC].[T_SQLDatabasePrincipals] pp
+						on pp.[IDSQLServerInstance]=db.IDSQLServerInstance and  pp.IDSQLDatabase=db.IDSQLDatabase
+							and pp.name=d.[rolename] 
+							and pp.[type] in ('R','G') 
+							and pp.principal_id=p.principal_id
+				  where d.[object_name]  LIKE 'cluster:%' and d.[object_name] NOT IN ('all') 
+			) cl
+	left join [elastic].[T_SQLDatabaseObjects] ou
+	  on ou.[IDSQLDatabase]=db.IDSQLDatabase 
+		and ou.[object_name]=cl.cluster_name 
+		and ou.[type]='CL'
+	left join [ELASTICAUDIT].[T_DBObjects] o 
+	  on o.[dtSnapshot]=d.snapshot_timestamp 
+		and o.[idDB]=db.IDSQLDatabase 
+		and o.[object_id]=ou.[object_id]
+	where d.[object_name] NOT IN ('all') 
+		and d.[object_name]  NOT LIKE 'cluster:%'
+	--and d.dbName='HUKDE_core_PR' and d.[user]='svcElasticHUKdePR1'
+
+	UNION
+	select distinct 
+		d.snapshot_timestamp  [dtSnapshot], 
+		db.IDSQLDatabase idDB, 
+		isnull(o.[object_id],0) [major_id],
+		1 class, 
+		'OBJECT_OR_COLUMN' [class_desc],
+		p.principal_id		[grantee_principal_id],
+		(case when d.[index_privilege] like '%CREATE%' then 'CR  ' 
+			 when d.[index_privilege] like '%DELETE%' then 'DL  ' 
+		else 'SL  ' end)	[type], 
+		d.[index_privilege] [permission_name],
+		'G' [state], 
+		'GRANT' [state_desc]
+ from #json_elastic d 
+	inner join [ELASTIC].[T_SQLDatabases] db
+		on db.IDSQLServerInstance=d.IDSQLServerInstance  
+			and db.dbid=d.dbid
+	inner join [ELASTIC].[T_SQLDatabasePrincipals] p
+		on p.[IDSQLServerInstance]=db.IDSQLServerInstance 
+			and  p.IDSQLDatabase=db.IDSQLDatabase
+			and p.name=d.[rolename] and p.[type] in ('R','G')
+	left join [elastic].[T_SQLDatabaseObjects] ou
+		on ou.[IDSQLDatabase]=db.IDSQLDatabase 
+			and ou.[object_name]=d.[index_name] 
+			and ou.[type]='X'
+	left join [ELASTICAUDIT].[T_DBObjects] o 
+		on o.[dtSnapshot]=d.snapshot_timestamp 
+			and o.[idDB]=db.IDSQLDatabase 
+			and o.[object_id]=ou.[object_id]
+	where d.[index_name] NOT IN ('all') 
+		and d.[index_privilege]  NOT IN ('all')
+) as source
+ON target.[dtSnapshot]=source.[dtSnapshot] 
+	and target.idDB=source.idDB 
+	and target.major_id=source.major_id
+	and target.class=source.class 
+	and target.type=source.type 
+	and target.state=source.state
+	and target.[grantee_principal_id] = source.[grantee_principal_id]
+	and target.[permission_name] = source.[permission_name]
+WHEN MATCHED THEN UPDATE
+SET  target.[state_desc]=source.[state_desc]
+	,target.[class_desc]=source.[class_desc]
+WHEN NOT MATCHED BY TARGET THEN INSERT 
+	([dtSnapshot], [idDB], [class], [class_desc], major_id, [grantee_principal_id], [type], [permission_name], [state], [state_desc])
+	values
+	(source.[dtSnapshot], source.idDB, source.[class], source.[class_desc], source.major_id, source.[grantee_principal_id], source.[type], source.[permission_name], source.[state], source.[state_desc])
+;
+--END
