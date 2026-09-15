@@ -1,0 +1,81 @@
+USE [IB15_DBVerwaltung_ps733]
+GO
+/****** Object:  UserDefinedFunction [postgresauditreport].[get_OverviewDBPermissions_v2]    Script Date: 15.09.2026 10:49:30 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+ALTER     FUNCTION [postgresauditreport].[get_OverviewDBPermissions] (
+   @dbName		NVARCHAR(max) = NULL  --for multiple values
+  ,@snapshot	NVARCHAR(max) = NULL  --for multiple values
+) RETURNS TABLE
+AS
+RETURN (
+with tt as (
+select  db.dtSnapshot, db.oid idDb, db.datname Datenbankname, 
+		unpvt.roleid, unpvt.rolname, unpvt.[type], unpvt.[type_desc], unpvt.privilege
+FROM (
+	select dtSnapshot,oid roleid, rolname, 
+		   iif(rolcanlogin = 1, 'U', 'R' )											[type],
+		   iif(rolcanlogin = 1, 'WINDOWS_USER', 'DATABASE_ROLE' )					[type_desc],
+		   cast(case when rolsuper=1		then 'SUPERUSER'	end as nvarchar(64)) rolsuper,
+		   cast(case when rolcreaterole=1	then 'CREATE ROLE'	end as nvarchar(64)) rolcreaterole,
+		   cast(case when rolcreatedb=1		then 'CREATE ROLE'	end as nvarchar(64)) rolcreatedb,
+		   cast(case when rolcanlogin=1		then 'CONNECT'		end as nvarchar(64)) rolcanlogin,
+		   cast(case when rolreplication=1	then 'REPLICATE'	end as nvarchar(64)) rolreplication,
+		   cast(case when rolbypassrls=1	then 'AVOID RLS'	end as nvarchar(64)) rolbypassrls
+	from [postgresaudit].[T_Roles]
+	where dtSnapshot=CONVERT(SMALLDATETIME, @snapshot, 102)
+) as src
+UNPIVOT (privilege FOR priv_type IN (rolsuper,rolcreaterole,rolcreatedb,rolcanlogin,rolreplication,rolbypassrls) ) as unpvt
+inner join [postgresaudit].[T_Databases] db 
+   on db.dtSnapshot=unpvt.dtSnapshot
+      and db.datname=@dbName and db.dtSnapshot=CONVERT(SMALLDATETIME, @snapshot, 102)
+WHERE unpvt.privilege IS NOT NULL	
+UNION
+select  unpvt.dtSnapshot, unpvt.idDb, unpvt.Datenbankname, 
+		unpvt.roleid, unpvt.rolname, unpvt.[type], unpvt.[type_desc], unpvt.privilege
+FROM (
+	select db.dtSnapshot, db.oid idDb, db.datname Datenbankname, r.oid roleid, r.rolname, 
+		   iif(r.rolcanlogin = 1, 'U', 'R' )										[type],
+		   iif(r.rolcanlogin = 1, 'WINDOWS_USER', 'DATABASE_ROLE' )					[type_desc],
+		   cast(case when pr.temporary=1	then 'CREATE TEMPORARY' end as nvarchar(64)) temporary,
+		   cast(case when pr.[create]=1		then 'CREATE'	end as nvarchar(64)) rolcreate,
+		   cast(case when pr.[connect]=1	then 'CONNECT'	end as nvarchar(64)) rolcanlogin
+	from [postgresaudit].[T_Roles] r
+	inner join [postgresaudit].[T_Databases] db on db.dtSnapshot=r.dtSnapshot 
+	  and db.datname=@dbName and db.dtSnapshot=CONVERT(SMALLDATETIME, @snapshot, 102)
+	inner join [postgresaudit].[T_RolePriviledgesPerDB] pr  on pr.[role]=r.rolname and pr.[database]=db.datname
+) as src
+UNPIVOT (privilege FOR priv_type IN (temporary,rolcreate,rolcanlogin) ) as unpvt
+WHERE unpvt.privilege IS NOT NULL	
+) 
+--select * from tt where rolname in ('pg_database_owner' )
+ select distinct
+		tt.dtSnapshot, tt.idDB, tt.Datenbankname, tt.roleid userid, tt.rolname username, tt.type usertype, tt.type_desc usertype_desc, 
+		isnull(ttm.privilege,tt.privilege) privilege,
+		ttm.roleid granted_roleid, memb.granted_role, ttm.type granted_roletype, ttm.type_desc granted_roletype_desc --., granted_role_privilege
+		,tt.type_desc, tt.rolname
+ from [postgresaudit].[T_Roles] us 
+ inner join tt on tt.rolname=us.rolname and tt.dtSnapshot=us.dtSnapshot and tt.Datenbankname=@dbName and tt.dtSnapshot=CONVERT(SMALLDATETIME, @snapshot, 102)
+ left join [postgresaudit].[T_RoleMemberships] memb on memb.member=tt.rolname and memb.dtSnapshot=tt.dtSnapshot and memb.dtSnapshot=CONVERT(SMALLDATETIME, @snapshot, 102)
+ left join tt ttm on ttm.rolname=memb.granted_role and ttm.dtSnapshot=memb.dtSnapshot and ttm.Datenbankname=tt.Datenbankname 
+	and ttm.Datenbankname=@dbName and ttm.dtSnapshot=CONVERT(SMALLDATETIME, @snapshot, 102)
+	and tt.privilege <= ttm.privilege
+ where us.rolcanlogin=1
+
+ UNION ALL
+ 
+select distinct
+		tt.dtSnapshot, tt.idDB, tt.Datenbankname, null userid, null username, null usertype, null usertype_desc, 
+		tt.privilege,
+		tt.roleid granted_roleid, tt.rolname granted_role, tt.type granted_roletype, tt.type_desc granted_roletype_desc --., granted_role_privilege
+		,tt.type_desc, tt.rolname
+from [postgresaudit].[T_Roles] us
+inner join tt  on tt.rolname=us.rolname and tt.dtSnapshot=us.dtSnapshot and tt.Datenbankname=@dbName and tt.dtSnapshot=CONVERT(SMALLDATETIME, @snapshot, 102)
+where us.rolcanlogin=0 and not exists (select 1 from [postgresaudit].[T_RoleMemberships] mem 
+									   where mem.granted_role=us.rolname and mem.dtSnapshot=us.dtSnapshot and  mem.dtSnapshot=CONVERT(SMALLDATETIME, @snapshot, 102))
+)
+
