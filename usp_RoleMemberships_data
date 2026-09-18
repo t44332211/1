@@ -1,0 +1,161 @@
+USE [IB15_DBVerwaltung_ps733]
+GO
+/****** Object:  StoredProcedure [mssqlauditreport].[usp_RoleMemberships_data]    Script Date: 18.09.2026 13:18:56 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+ALTER   PROCEDURE [mssqlauditreport].[usp_RoleMemberships_data] 
+	@serverName NVARCHAR(max) = NULL,  --for multiple values
+	@dbName		NVARCHAR(max) = NULL,  --for multiple values
+	@snapshot	NVARCHAR(max) = NULL,  --for multiple values
+    @personrole NVARCHAR(max) = NULL,  --for multiple values
+	@latecert   NVARCHAR(max) = NULL,  --for multiple values
+	@whitelist	BIT = 1
+AS
+BEGIN
+	SET NOCOUNT ON;
+
+	IF TRIM(@personrole) <> 'DataSteward'
+	BEGIN
+		DECLARE @idDB INT = NULL;
+
+		SELECT @idDB = IDSQLDatabase FROM [mssqlauditreport].[get_OverviewDatabases_online](@serverName) 
+		WHERE Datenbankname = @dbName
+
+		SELECT DISTINCT perm.Global, perm.Member, perm.MemberType, perm.ADGroupLink, perm.RoleName, '' AS [Bemerkung], perm.lastChange, perm.sign_compare -- finales SELECT
+		FROM ( -- Vergleichs-Flag wird ermittelt
+		SELECT perm_neu.*, 
+				CASE WHEN perm_neu.[Member] IS NULL AND perm_alt.[Member] IS NOT NULL THEN 'DEL'
+						WHEN perm_neu.[Member] IS NOT NULL AND perm_alt.[Member] IS NULL THEN 'NEW'
+						ELSE 'SAME' 
+				END AS sign_compare 
+		FROM  ( 
+			SELECT 'Role Memberships' AS Global
+						, CASE WHEN tee.type NOT IN ('A', 'R') THEN CASE ISNULL(iam.sn, '') WHEN '' THEN ISNULL(tee.name, '') ELSE tee.name + ' (' + ISNULL(iam.sn, '') + ', ' + ISNULL(iam.givenname, '') + ' ' + iam.HUKorga + ')' END ELSE CASE ISNULL(rmpiam.sn, '') WHEN '' THEN ISNULL(rmp.name, '') ELSE rmp.name + ' (' + ISNULL(rmpiam.sn, '') + ', ' + ISNULL(rmpiam.givenname, '') + ' ' + rmpiam.HUKorga + ')' END END AS [Member]
+						, CASE WHEN tee.type IN ('A', 'R') THEN tee.name ELSE '' END AS RoleName
+						--, CASE p.class_desc WHEN 'SCHEMA' THEN ss.name WHEN 'TYPE' THEN ts.name ELSE ISNULL(s.name, '*') END AS [Schema]
+						--, CASE p.class_desc WHEN 'OBJECT_OR_COLUMN' THEN CASE ISNULL(c.name, '*') WHEN '*' THEN o.type_desc ELSE 'COLUMN' END ELSE p.class_desc END AS [Type]
+						, rmp.type_desc AS MemberType
+						--, p.state_desc AS [AccessType]
+						--, p.permission_name AS Privilege
+						, CASE ISNULL(rmp.type_desc, '') WHEN 'WINDOWS_GROUP' THEN 'https://clima.lan.huk-coburg.de/GroupInfo2/Home/Members/' + SUBSTRING(rmp.name, CHARINDEX('\', rmp.name) + 1, LEN(rmp.name) - CHARINDEX('\', rmp.name)) ELSE '' END AS ADGroupLink
+						--, CASE p.class_desc WHEN 'SCHEMA' THEN '*' WHEN 'TYPE' THEN t.name ELSE ISNULL(o.name, '*') END AS [Object]
+						--, CASE p.class_desc WHEN 'SCHEMA' THEN '*' ELSE ISNULL(c.name, '*') END AS [ColumnName]
+						, tee.modify_date AS lastChange
+					FROM (	SELECT * FROM [mssqlaudit].[T_DBPermissions] 
+							WHERE dtSnapshot = CONVERT(SMALLDATETIME, @snapshot, 102) AND idDB = @idDB AND idDB = @idDB
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @snapshot, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16384 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @snapshot, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16385 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @snapshot, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16386 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @snapshot, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16387 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @snapshot, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16389 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @snapshot, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16390 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @snapshot, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16391 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @snapshot, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16392 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @snapshot, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16393 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+						) AS p
+					JOIN [mssqlaudit].[T_DBPrincipals] AS tee
+						ON p.dtSnapshot = tee.dtSnapshot AND p.idDB = tee.idDB AND tee.principal_id = p.grantee_principal_id
+					LEFT OUTER JOIN [mssqlaudit].[T_DBRoleMembers] AS rm
+						ON p.dtSnapshot = rm.dtSnapshot AND p.idDB = rm.idDB AND p.grantee_principal_id = rm.role_principal_id
+					LEFT OUTER JOIN [mssqlaudit].[T_DBPrincipals] AS rmp
+						ON rmp.dtSnapshot = rm.dtSnapshot AND rmp.idDB = rm.idDB AND rmp.principal_id = rm.member_principal_id
+--					LEFT OUTER JOIN [mssqlaudit].[T_DBObjects] AS o
+--						ON p.dtSnapshot = o.dtSnapshot AND p.idDB = o.idDB AND o.object_id = p.major_id
+--					LEFT OUTER JOIN [mssqlaudit].[T_DBSchemas] AS s
+--						ON s.dtSnapshot = o.dtSnapshot AND s.idDB = o.idDB AND o.schema_id = s.schema_id
+--					LEFT OUTER JOIN [mssqlaudit].[T_DBColumns] AS c
+--						ON c.dtSnapshot = p.dtSnapshot AND c.idDB = p.idDB AND o.object_id = c.object_id AND p.minor_id = c.column_id
+--					LEFT OUTER JOIN [mssqlaudit].[T_DBSchemas] AS ss
+--						ON ss.dtSnapshot = p.dtSnapshot AND ss.idDB = p.idDB AND ss.schema_id = p.major_id 
+--					LEFT OUTER JOIN [mssqlaudit].[T_DBTypes] AS t
+--						ON t.dtSnapshot = p.dtSnapshot AND t.idDB = p.idDB AND t.user_type_id = p.major_id 
+--					LEFT OUTER JOIN [mssqlaudit].[T_DBSchemas] AS ts
+--						ON t.dtSnapshot = ts.dtSnapshot AND t.idDB = ts.idDB AND t.schema_id = ts.schema_id 
+					LEFT OUTER JOIN [mssql].[T_IAMDaten_Hist] AS iam
+						ON [iam].[HUKuid-1] = SUBSTRING(tee.name, CHARINDEX('\', tee.name) + 1, LEN(tee.name) - CHARINDEX('\', tee.name))
+					LEFT OUTER JOIN [mssql].[T_IAMDaten_Hist] AS rmpiam
+						ON [rmpiam].[HUKuid-1] = SUBSTRING(rmp.name, CHARINDEX('\', rmp.name) + 1, LEN(rmp.name) - CHARINDEX('\', rmp.name))
+					WHERE p.[dtSnapshot] = CONVERT(SMALLDATETIME, @snapshot, 102)
+					AND p.idDB = @idDB
+--					AND CASE p.class_desc WHEN 'OBJECT_OR_COLUMN' THEN CASE ISNULL(c.name, '*') WHEN '*' THEN o.type_desc ELSE 'COLUMN' END ELSE p.class_desc END IS NOT NULL
+					AND p.permission_name <> 'CONNECT') AS perm_neu
+			FULL OUTER JOIN (
+			SELECT 'Object permission' AS Global
+						, CASE WHEN tee.type NOT IN ('A', 'R') THEN CASE ISNULL(iam.sn, '') WHEN '' THEN ISNULL(tee.name, '') ELSE tee.name + ' (' + ISNULL(iam.sn, '') + ', ' + ISNULL(iam.givenname, '') + ' ' + iam.HUKorga + ')' END ELSE CASE ISNULL(rmpiam.sn, '') WHEN '' THEN ISNULL(rmp.name, '') ELSE rmp.name + ' (' + ISNULL(rmpiam.sn, '') + ', ' + ISNULL(rmpiam.givenname, '') + ' ' + rmpiam.HUKorga + ')' END END AS [Member]
+						, CASE WHEN tee.type IN ('A', 'R') THEN tee.name ELSE '' END AS RoleName
+						--, CASE p.class_desc WHEN 'SCHEMA' THEN ss.name WHEN 'TYPE' THEN ts.name ELSE ISNULL(s.name, '*') END AS [Schema]
+						--, CASE p.class_desc WHEN 'OBJECT_OR_COLUMN' THEN CASE ISNULL(c.name, '*') WHEN '*' THEN o.type_desc ELSE 'COLUMN' END ELSE p.class_desc END AS [Type]
+						, rmp.type_desc AS MemberType
+						--, p.state_desc AS [AccessType]
+						--, p.permission_name AS Privilege
+						, CASE ISNULL(rmp.type_desc, '') WHEN 'WINDOWS_GROUP' THEN 'https://clima.lan.huk-coburg.de/GroupInfo2/Home/Members/' + SUBSTRING(rmp.name, CHARINDEX('\', rmp.name) + 1, LEN(rmp.name) - CHARINDEX('\', rmp.name)) ELSE '' END AS ADGroupLink
+						--, CASE p.class_desc WHEN 'SCHEMA' THEN '*' WHEN 'TYPE' THEN t.name ELSE ISNULL(o.name, '*') END AS [Object]
+						--, CASE p.class_desc WHEN 'SCHEMA' THEN '*' ELSE ISNULL(c.name, '*') END AS [ColumnName]
+						, tee.modify_date AS lastChange
+					FROM (	SELECT * FROM [mssqlaudit].[T_DBPermissions_Archive] 
+							WHERE dtSnapshot = CONVERT(SMALLDATETIME, @latecert, 102) AND idDB = @idDB AND idDB = @idDB
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @latecert, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16384 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @latecert, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16385 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @latecert, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16386 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @latecert, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16387 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @latecert, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16389 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @latecert, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16390 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @latecert, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16391 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @latecert, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16392 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+							UNION ALL
+							SELECT CONVERT(SMALLDATETIME, @latecert, 102) AS dtSnapshot, @idDB AS idDB, 0 AS class, 'DATABASE' AS class_desc, 0 AS major_id, 0 AS minor_id, 16393 AS grantee_principal_id, 1 AS grantor_principal_id, 'DEF' AS type, 'siehe https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver17' AS permission_name, 'G' AS state, 'DEFAULT' AS state_desc
+						) AS p
+					JOIN [mssqlaudit].[T_DBPrincipals_Archive] AS tee
+						ON p.dtSnapshot = tee.dtSnapshot AND p.idDB = tee.idDB AND tee.principal_id = p.grantee_principal_id
+					LEFT OUTER JOIN [mssqlaudit].[T_DBRoleMembers_Archive] AS rm
+						ON p.dtSnapshot = rm.dtSnapshot AND p.idDB = rm.idDB AND p.grantee_principal_id = rm.role_principal_id
+					LEFT OUTER JOIN [mssqlaudit].[T_DBPrincipals_Archive] AS rmp
+						ON rmp.dtSnapshot = rm.dtSnapshot AND rmp.idDB = rm.idDB AND rmp.principal_id = rm.member_principal_id
+--					LEFT OUTER JOIN [mssqlaudit].[T_DBObjects_Archive] AS o
+--						ON p.dtSnapshot = o.dtSnapshot AND p.idDB = o.idDB AND o.object_id = p.major_id
+--					LEFT OUTER JOIN [mssqlaudit].[T_DBSchemas_Archive] AS s
+--						ON s.dtSnapshot = o.dtSnapshot AND s.idDB = o.idDB AND o.schema_id = s.schema_id
+--					LEFT OUTER JOIN [mssqlaudit].[T_DBColumns_Archive] AS c
+--						ON c.dtSnapshot = p.dtSnapshot AND c.idDB = p.idDB AND o.object_id = c.object_id AND p.minor_id = c.column_id
+--					LEFT OUTER JOIN [mssqlaudit].[T_DBSchemas_Archive] AS ss
+--						ON ss.dtSnapshot = p.dtSnapshot AND ss.idDB = p.idDB AND ss.schema_id = p.major_id 
+--					LEFT OUTER JOIN [mssqlaudit].[T_DBTypes_Archive] AS t
+--						ON t.dtSnapshot = p.dtSnapshot AND t.idDB = p.idDB AND t.user_type_id = p.major_id 
+--					LEFT OUTER JOIN [mssqlaudit].[T_DBSchemas_Archive] AS ts
+--						ON t.dtSnapshot = ts.dtSnapshot AND t.idDB = ts.idDB AND t.schema_id = ts.schema_id 
+					LEFT OUTER JOIN [mssql].[T_IAMDaten_Hist] AS iam
+						ON [iam].[HUKuid-1] = SUBSTRING(tee.name, CHARINDEX('\', tee.name) + 1, LEN(tee.name) - CHARINDEX('\', tee.name))
+					LEFT OUTER JOIN [mssql].[T_IAMDaten_Hist] AS rmpiam
+						ON [rmpiam].[HUKuid-1] = SUBSTRING(rmp.name, CHARINDEX('\', rmp.name) + 1, LEN(rmp.name) - CHARINDEX('\', rmp.name))
+					WHERE p.[dtSnapshot] = CONVERT(SMALLDATETIME, @latecert, 102)
+					AND p.idDB = @idDB
+--					AND CASE p.class_desc WHEN 'OBJECT_OR_COLUMN' THEN CASE ISNULL(c.name, '*') WHEN '*' THEN o.type_desc ELSE 'COLUMN' END ELSE p.class_desc END IS NOT NULL
+					AND p.permission_name <> 'CONNECT') AS perm_alt
+			ON perm_neu.RoleName = perm_alt.RoleName AND perm_neu.[Member] = perm_alt.[Member] AND perm_neu.MemberType = perm_alt.MemberType
+			WHERE ISNULL(perm_neu.[Member], '') <> '' AND ISNULL(perm_neu.RoleName, '') <> ''
+		) AS perm
+		ORDER BY [RoleName], [Member]
+	END
+END
