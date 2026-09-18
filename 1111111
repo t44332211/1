@@ -1,0 +1,3 @@
+Get-ChildItem "O:\Prj-REZUDB\TEAM\Arbeitsbereich_ps733\ORACLE\Scripts" -Recurse -File |
+Select-String -Pattern "omnitracker" |
+Select-Object Path, LineNumber, Line
