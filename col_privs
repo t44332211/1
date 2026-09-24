@@ -1,0 +1,23 @@
+SELECT 
+    'INSERT INTO huk_dba_col_privs (' ||
+    'DBID, PDB_NAME, COLLECTION_TIMESTAMP, GRANTEE, OWNER, TABLE_NAME, ' ||
+    'COLUMN_NAME, GRANTOR, PRIVILEGE, GRANTABLE, COMMON, INHERITED, CON_ID' ||
+    ') VALUES (' ||
+    NVL(TO_CHAR(privs.DBID), 'NULL') || ', ' ||
+    NVL2(privs.PDB_NAME, '''' || REPLACE(privs.PDB_NAME, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.COLLECTION_TIMESTAMP, 'TO_DATE(''' || TO_CHAR(privs.COLLECTION_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') || ''', ''YYYY-MM-DD HH24:MI:SS'')', 'NULL') || ', ' ||
+    NVL2(privs.GRANTEE, '''' || REPLACE(privs.GRANTEE, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.OWNER, '''' || REPLACE(privs.OWNER, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.TABLE_NAME, '''' || REPLACE(privs.TABLE_NAME, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.COLUMN_NAME, '''' || REPLACE(privs.COLUMN_NAME, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.GRANTOR, '''' || REPLACE(privs.GRANTOR, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.PRIVILEGE, '''' || REPLACE(privs.PRIVILEGE, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.GRANTABLE, '''' || REPLACE(privs.GRANTABLE, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.COMMON, '''' || REPLACE(privs.COMMON, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.INHERITED, '''' || REPLACE(privs.INHERITED, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL(TO_CHAR(privs.CON_ID), 'NULL') ||
+    ');' AS insert_script
+FROM huk_dba_col_privs privs
+JOIN rezudb_oracle_databases rez
+  ON privs.pdb_name = rez.db_name
+WHERE rez.db_name = 'P_SCDP0P';
