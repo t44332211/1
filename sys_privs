@@ -1,0 +1,17 @@
+SELECT 
+    'INSERT INTO huk_dba_sys_privs (' ||
+    'DBID, PDB_NAME, COLLECTION_TIMESTAMP, ADMIN_OPTION, COMMON, ' ||
+    'GRANTEE, INHERITED, PRIVILEGE, CON_ID' ||
+    ') VALUES (' ||
+    NVL(TO_CHAR(privs.DBID), 'NULL') || ', ' ||
+    NVL2(privs.PDB_NAME, '''' || REPLACE(privs.PDB_NAME, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.COLLECTION_TIMESTAMP, 'TO_DATE(''' || TO_CHAR(privs.COLLECTION_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') || ''', ''YYYY-MM-DD HH24:MI:SS'')', 'NULL') || ', ' ||
+    NVL2(privs.ADMIN_OPTION, '''' || REPLACE(privs.ADMIN_OPTION, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.COMMON, '''' || REPLACE(privs.COMMON, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.GRANTEE, '''' || REPLACE(privs.GRANTEE, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.INHERITED, '''' || REPLACE(privs.INHERITED, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.PRIVILEGE, '''' || REPLACE(privs.PRIVILEGE, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL(TO_CHAR(privs.CON_ID), 'NULL') ||
+    ');' AS insert_script
+FROM huk_dba_sys_privs privs
+WHERE privs.pdb_name = 'P_SCDP0P';
