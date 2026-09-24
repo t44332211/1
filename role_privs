@@ -1,0 +1,19 @@
+SELECT 
+    'INSERT INTO huk_dba_role_privs (' ||
+    'DBID, PDB_NAME, COLLECTION_TIMESTAMP, GRANTEE, GRANTED_ROLE, ' ||
+    'ADMIN_OPTION, DELEGATE_OPTION, DEFAULT_ROLE, COMMON, INHERITED, CON_ID' ||
+    ') VALUES (' ||
+    NVL(TO_CHAR(privs.DBID), 'NULL') || ', ' ||
+    NVL2(privs.PDB_NAME, '''' || REPLACE(privs.PDB_NAME, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.COLLECTION_TIMESTAMP, 'TO_DATE(''' || TO_CHAR(privs.COLLECTION_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') || ''', ''YYYY-MM-DD HH24:MI:SS'')', 'NULL') || ', ' ||
+    NVL2(privs.GRANTEE, '''' || REPLACE(privs.GRANTEE, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.GRANTED_ROLE, '''' || REPLACE(privs.GRANTED_ROLE, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.ADMIN_OPTION, '''' || REPLACE(privs.ADMIN_OPTION, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.DELEGATE_OPTION, '''' || REPLACE(privs.DELEGATE_OPTION, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.DEFAULT_ROLE, '''' || REPLACE(privs.DEFAULT_ROLE, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.COMMON, '''' || REPLACE(privs.COMMON, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.INHERITED, '''' || REPLACE(privs.INHERITED, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL(TO_CHAR(privs.CON_ID), 'NULL') ||
+    ');' AS insert_script
+FROM huk_dba_role_privs privs
+WHERE privs.pdb_name = 'P_SCDP0P';
