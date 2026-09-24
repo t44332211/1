@@ -1,0 +1,30 @@
+SELECT 
+    'INSERT INTO rezudb_oracle_databases (' ||
+    'SOURCE, CMDB_NAME, CI_ID, DB_NAME, ORA_LDAP_ALIAS, PHASE, ENVIRONMENT, ' ||
+    'ZUSTAND, SLA, WAF, DATA_ENABLER, DATA_OWNER, DATA_STEWARD, DBA, ' ||
+    'APPLICATION_NAME, SHORTCUT, DESCRIPTION, ORGA, SBK, JDBC_URL, COLLECTION_TIMESTAMP' ||
+    ') VALUES (' ||
+    NVL2(SOURCE, '''' || REPLACE(SOURCE, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(CMDB_NAME, '''' || REPLACE(CMDB_NAME, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(CI_ID, '''' || REPLACE(CI_ID, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(DB_NAME, '''' || REPLACE(DB_NAME, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(ORA_LDAP_ALIAS, '''' || REPLACE(ORA_LDAP_ALIAS, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(PHASE, '''' || REPLACE(PHASE, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(ENVIRONMENT, '''' || REPLACE(ENVIRONMENT, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(ZUSTAND, '''' || REPLACE(ZUSTAND, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(SLA, '''' || REPLACE(SLA, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL(TO_CHAR(WAF), 'NULL') || ', ' ||
+    NVL2(DATA_ENABLER, '''' || REPLACE(DATA_ENABLER, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(DATA_OWNER, '''' || REPLACE(DATA_OWNER, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(DATA_STEWARD, '''' || REPLACE(DATA_STEWARD, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(DBA, '''' || REPLACE(DBA, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(APPLICATION_NAME, '''' || REPLACE(APPLICATION_NAME, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(SHORTCUT, '''' || REPLACE(SHORTCUT, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(DESCRIPTION, '''' || REPLACE(DESCRIPTION, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(ORGA, '''' || REPLACE(ORGA, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL(TO_CHAR(SBK), 'NULL') || ', ' ||
+    NVL2(JDBC_URL, '''' || REPLACE(JDBC_URL, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(COLLECTION_TIMESTAMP, 'TO_TIMESTAMP(''' || TO_CHAR(COLLECTION_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS.FF') || ''', ''YYYY-MM-DD HH24:MI:SS.FF'')', 'NULL') ||
+    ');' AS insert_script
+FROM rezudb_oracle_databases
+WHERE db_name = 'P_SCDP0P';
