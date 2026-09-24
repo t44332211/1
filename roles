@@ -1,0 +1,22 @@
+SELECT 
+    'INSERT INTO huk_dba_roles (' ||
+    'DBID, PDB_NAME, COLLECTION_TIMESTAMP, ROLE, ROLE_ID, ' ||
+    'PASSWORD_REQUIRED, AUTHENTICATION_TYPE, COMMON, ORACLE_MAINTAINED, ' ||
+    'INHERITED, IMPLICIT, EXTERNAL_NAME, CON_ID' ||
+    ') VALUES (' ||
+    NVL(TO_CHAR(privs.DBID), 'NULL') || ', ' ||
+    NVL2(privs.PDB_NAME, '''' || REPLACE(privs.PDB_NAME, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.COLLECTION_TIMESTAMP, 'TO_DATE(''' || TO_CHAR(privs.COLLECTION_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') || ''', ''YYYY-MM-DD HH24:MI:SS'')', 'NULL') || ', ' ||
+    NVL2(privs.ROLE, '''' || REPLACE(privs.ROLE, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL(TO_CHAR(privs.ROLE_ID), 'NULL') || ', ' ||
+    NVL2(privs.PASSWORD_REQUIRED, '''' || REPLACE(privs.PASSWORD_REQUIRED, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.AUTHENTICATION_TYPE, '''' || REPLACE(privs.AUTHENTICATION_TYPE, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.COMMON, '''' || REPLACE(privs.COMMON, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.ORACLE_MAINTAINED, '''' || REPLACE(privs.ORACLE_MAINTAINED, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.INHERITED, '''' || REPLACE(privs.INHERITED, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.IMPLICIT, '''' || REPLACE(privs.IMPLICIT, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL2(privs.EXTERNAL_NAME, '''' || REPLACE(privs.EXTERNAL_NAME, '''', '''''') || '''', 'NULL') || ', ' ||
+    NVL(TO_CHAR(privs.CON_ID), 'NULL') ||
+    ');' AS insert_script
+FROM huk_dba_roles privs
+WHERE privs.pdb_name = 'P_SCDP0P';
