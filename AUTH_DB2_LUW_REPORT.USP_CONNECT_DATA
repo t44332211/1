@@ -1,0 +1,140 @@
+CREATE OR REPLACE PROCEDURE AUTH_DB2_LUW_REPORT.USP_CONNECT_DATA (
+   IN P_DB_CMDB_NAME      VARCHAR (100),
+   IN P_TIMESTAMP         VARCHAR (40),
+   IN P_PREVTIMESTAMP     VARCHAR (40),
+   IN P_WHITELIST         SMALLINT DEFAULT 1,
+   IN P_IN_SHOW_REVOKED   SMALLINT DEFAULT 1,
+   IN P_IN_SHOW_SAME      SMALLINT DEFAULT 1)
+   SPECIFIC USP_CONNECT_DATA
+   DYNAMIC RESULT SETS 1
+   LANGUAGE SQL
+   NOT DETERMINISTIC
+   EXTERNAL ACTION
+   MODIFIES SQL DATA
+   CALLED ON NULL INPUT
+   INHERIT SPECIAL REGISTERS
+   OLD SAVEPOINT LEVEL
+BEGIN
+   DECLARE V_DYNSEL             CLOB;
+   DECLARE V_TABNAME_DBAUTH     VARCHAR (256) DEFAULT 'AUTH.TA_DB2_LUW_DBAUTH';
+   DECLARE V_TABNAME_ROLEAUTH   VARCHAR (256) DEFAULT 'AUTH.TA_DB2_LUW_ROLEAUTH';
+   DECLARE V_PREVTIMESTAMP VARCHAR(40) DEFAULT 'NIX'; --TRIM(P_PREVTIMESTAMP)
+   DECLARE C_RETURN CURSOR WITH RETURN TO CLIENT FOR V_SEL_STMT;
+
+  IF P_PREVTIMESTAMP IS NOT NULL
+  THEN
+    SET V_PREVTIMESTAMP = TRIM(P_PREVTIMESTAMP);
+  END IF;
+
+   IF P_WHITELIST = 0
+   THEN
+      SET V_TABNAME_DBAUTH = 'AUTH.TA_DB2_LUW_DBAUTH_RAW';
+      SET V_TABNAME_ROLEAUTH = 'AUTH.TA_DB2_LUW_ROLEAUTH_RAW';
+   ELSE
+      SET V_TABNAME_DBAUTH = 'AUTH.TA_DB2_LUW_DBAUTH';
+      SET V_TABNAME_ROLEAUTH = 'AUTH.TA_DB2_LUW_ROLEAUTH';
+   END IF;
+
+   SET V_DYNSEL =
+             'WITH CONNECT_DATA AS (SELECT GRANTEE,
+                       GRANTEETYPE,                       
+                       ''Direct'' AS CONNECTAUTH
+                FROM '
+          || V_TABNAME_DBAUTH
+          || ' WHERE     CONNECTAUTH = ''Y''
+                      AND GRANTEETYPE IN (''G'', ''U'')
+                      AND DB_CMDB_NAME = '''
+          || P_DB_CMDB_NAME
+          || ''' AND VARCHAR_FORMAT (SNAP_TS, ''DD.MM.YYYY HH24:MI:SS'') = '''
+          || TRIM (P_TIMESTAMP)
+          || ''' UNION SELECT GRANTEE,
+                       GRANTEETYPE,                       
+                       ''Role'' AS CONNECTAUTH
+                FROM '
+          || V_TABNAME_ROLEAUTH
+          || ' WHERE     DB_CMDB_NAME = '''
+          || P_DB_CMDB_NAME
+          || ''' AND GRANTEETYPE IN (''G'', ''U'') AND VARCHAR_FORMAT (SNAP_TS, ''DD.MM.YYYY HH24:MI:SS'') = '''
+          || TRIM (P_TIMESTAMP)
+          || ''') , BASE AS( SELECT GRANTEE,GRANTEETYPE FROM CONNECT_DATA GROUP BY GRANTEE,GRANTEETYPE ),
+         CONNECT_DATA_PREV AS (   SELECT GRANTEE,
+                       GRANTEETYPE,                       
+                       ''Direct'' AS CONNECTAUTH FROM '
+          || V_TABNAME_DBAUTH
+          || ' WHERE     CONNECTAUTH = ''Y''
+                      AND GRANTEETYPE IN (''G'', ''U'')
+                      AND DB_CMDB_NAME = '''
+          || P_DB_CMDB_NAME
+          || ''' AND VARCHAR_FORMAT (SNAP_TS, ''DD.MM.YYYY HH24:MI:SS'') = '''
+          || V_PREVTIMESTAMP
+          || ''' UNION
+                SELECT GRANTEE,
+                       GRANTEETYPE,                       
+                       ''Role'' AS CONNECTAUTH
+                FROM '
+          || V_TABNAME_ROLEAUTH
+          || ' WHERE     DB_CMDB_NAME = '''
+          || P_DB_CMDB_NAME
+          || ''' AND GRANTEETYPE IN (''G'', ''U'') AND VARCHAR_FORMAT (SNAP_TS, ''DD.MM.YYYY HH24:MI:SS'') = '''
+          || V_PREVTIMESTAMP
+          || '''), TO_COMPARE AS (
+         SELECT GRANTEE,GRANTEETYPE                   
+         FROM CONNECT_DATA_PREV
+         GROUP BY GRANTEE,GRANTEETYPE
+         )
+         ,GRANTED AS (
+         SELECT GRANTEE, GRANTEETYPE FROM BASE
+         MINUS
+         SELECT GRANTEE, GRANTEETYPE FROM TO_COMPARE
+         )
+         ,REVOKED AS (
+         SELECT GRANTEE,GRANTEETYPE FROM TO_COMPARE
+         MINUS
+         SELECT GRANTEE,GRANTEETYPE FROM BASE
+         ), SAME AS (
+         SELECT B.GRANTEE, B.GRANTEETYPE FROM BASE AS B
+         INNER JOIN TO_COMPARE AS C ON B.GRANTEE = C.GRANTEE AND B.GRANTEETYPE = C.GRANTEETYPE         
+         )
+         SELECT ''NEW'' AS SIGN_COMPARE, ''1'' AS DIFF_SORT, 
+         GRANTEE,
+                CASE GRANTEETYPE
+                   WHEN ''U'' THEN MSSQL.GETUSERINFO (GRANTEE)
+                   ELSE MSSQL.GETGROUPINFO (GRANTEE)
+                END AS GRANTEELOOKUP,
+                CASE GRANTEETYPE
+                          WHEN ''U'' THEN ''DATABASE_USER''
+                          ELSE ''DATABASE_GROUP''
+                       END AS TYPE 
+                FROM GRANTED
+          UNION ALL
+          SELECT ''OLD'' AS SIGN_COMPARE, ''3'' AS DIFF_SORT, 
+           GRANTEE,
+                CASE GRANTEETYPE
+                   WHEN ''U'' THEN MSSQL.GETUSERINFO (GRANTEE)
+                   ELSE MSSQL.GETGROUPINFO (GRANTEE)
+                END AS GRANTEELOOKUP,
+                CASE GRANTEETYPE
+                          WHEN ''U'' THEN ''DATABASE_USER''
+                          ELSE ''DATABASE_GROUP''
+                       END AS TYPE                 
+          FROM REVOKED WHERE 1 = '
+          || P_IN_SHOW_REVOKED
+          || ' UNION ALL
+          SELECT ''SAME'' AS SIGN_COMPARE, ''2'' AS DIFF_SORT, 
+           GRANTEE,
+                CASE GRANTEETYPE
+                   WHEN ''U'' THEN MSSQL.GETUSERINFO (GRANTEE)
+                   ELSE MSSQL.GETGROUPINFO (GRANTEE)
+                END AS GRANTEELOOKUP,
+                CASE GRANTEETYPE
+                          WHEN ''U'' THEN ''DATABASE_USER''
+                          ELSE ''DATABASE_GROUP''
+                       END AS TYPE 
+          FROM SAME WHERE 1 = '
+          || P_IN_SHOW_SAME
+          || ' WITH UR;';
+
+   PREPARE V_SEL_STMT FROM V_DYNSEL;
+
+   OPEN C_RETURN;
+END
