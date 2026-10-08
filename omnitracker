@@ -1,0 +1,32 @@
+
+SELECT
+    'INSERT INTO ITEMS_OMNITRACKER_IMPORT_CERTTIMESTAMPS (' ||
+    'AUDDITID, ELEMENT, CIID, DATENBANKID, DTSNAPSHOT' ||
+    ') VALUES (' ||
+
+    NVL2(t.AUDDITID,
+         '''' || REPLACE(t.AUDDITID, '''', '''''') || '''',
+         'NULL') || ', ' ||
+
+    NVL2(t.ELEMENT,
+         '''' || REPLACE(t.ELEMENT, '''', '''''') || '''',
+         'NULL') || ', ' ||
+
+    NVL2(t.CIID,
+         '''' || REPLACE(t.CIID, '''', '''''') || '''',
+         'NULL') || ', ' ||
+
+    NVL(
+        TO_CHAR(t.DATENBANKID, 'TM9', 'NLS_NUMERIC_CHARACTERS=''.,'''),
+        'NULL'
+    ) || ', ' ||
+
+    NVL2(t.DTSNAPSHOT,
+         'TO_DATE(''' ||
+         TO_CHAR(t.DTSNAPSHOT, 'YYYY-MM-DD HH24:MI:SS') ||
+         ''', ''YYYY-MM-DD HH24:MI:SS'')',
+         'NULL') ||
+
+    ');' AS insert_script
+
+FROM ITEMS_OMNITRACKER_IMPORT_CERTTIMESTAMPS t;
